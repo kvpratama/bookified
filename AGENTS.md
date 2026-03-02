@@ -1,5 +1,15 @@
 # AGENTS.md
 
+## Package Management
+
+This project uses **pnpm** as its package manager. Always use pnpm for all package operations:
+
+- Installing packages: `pnpm add <package>`
+- Running scripts: `pnpm <script-name>`
+- **For shadcn/ui components**: Use `pnpm dlx shadcn@latest add <component>` (not `npx`)
+
+Never use npm or yarn for this project.
+
 ## Build & Test Commands
 
 - `pnpm dev` — start dev server
@@ -30,9 +40,18 @@
   2. **2+ consumers in the same subtree** → move to the nearest shared parent folder.
   3. **App-wide use** → place in `components/ui/`.
   4. Never duplicate a component. Always check if one already exists in a shared location before creating a new one.
-- **Testing:** Prioritize colocation (place test files next to the source files they test). Always use `pnpm test:run` for automated verification.
+
+## Testing
+
+- Prioritize colocation (place test files next to the source files they test). Always use `pnpm test:run` for automated verification.
 - **Testing Types:** Do not use "any" type in tests. Type mocks, utilities, and assertions explicitly; prefer generics and type-safe helpers over type casts.
 - **Use red/green TDD**
+
+## Component Guidelines
+
+- **Use shadcn/ui**: Always use shadcn/ui components when available. Do not create custom components that duplicate shadcn functionality
+- **Add Components**: Use `pnpm dlx shadcn@latest add <component>` to add new shadcn components as needed
+- **No Native Dialogs**: Never use native `alert()` or `confirm()` dialogs. Always use shadcn AlertDialog, Dialog, or Sonner toast components instead
 
 <!-- BEGIN:nextjs-agent-rules -->
 
