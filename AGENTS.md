@@ -17,7 +17,7 @@ Never use npm or yarn for this project.
 - `pnpm lint` — run ESLint
 - `pnpm format` — format with Prettier
 - `pnpm test:run` — run all tests (vitest, jsdom environment)
-- `npx vitest run app/page.test.tsx` — run a single test file
+- `pnpm dlx vitest run app/page.test.tsx` — run a single test file
 - `pnpm type-check` — TypeScript type checking (`tsc --noEmit`)
 
 ## Architecture
@@ -41,22 +41,39 @@ Never use npm or yarn for this project.
   3. **App-wide use** → place in `components/ui/`.
   4. Never duplicate a component. Always check if one already exists in a shared location before creating a new one.
 
+## Error Handling
+
+**Server Actions & API Routes**
+
+- Always return typed result objects (`{ data, error }`) rather than throwing; let the caller decide how to surface errors
+- Use `next/server` `NextResponse.json({ error: "..." }, { status: 4xx })` for API route errors
+- Never expose raw error messages or stack traces to the client
+
+**Client-side Async**
+
+- Use `try/catch` around all `fetch` / server action calls; handle loading, success, and error states explicitly
+- Surface errors to the user via Sonner toast (`toast.error(...)`) — never `console.error` only
+
+**Error Boundaries**
+
+- Add an `error.tsx` alongside any `page.tsx` that does async data fetching (App Router convention)
+- Add a root `app/error.tsx` as a global fallback
+- Error boundaries must include a "Try again" reset button using the provided `reset` prop
+
+**Form Validation**
+
+- Use `zod` for all schema validation; colocate schemas with the form component
+- Prefer React Hook Form + shadcn `Form` primitives for form state and error display
+- Show field-level errors inline (via `FormMessage`), not as toasts
+
 ## Testing
 
 - Prioritize colocation (place test files next to the source files they test). Always use `pnpm test:run` for automated verification.
 - **Testing Types:** Do not use "any" type in tests. Type mocks, utilities, and assertions explicitly; prefer generics and type-safe helpers over type casts.
-- **Use red/green TDD**
+- **Use red/green TDD**: Write a failing test first, verify it fails, then implement.
 
 ## Component Guidelines
 
 - **Use shadcn/ui**: Always use shadcn/ui components when available. Do not create custom components that duplicate shadcn functionality
 - **Add Components**: Use `pnpm dlx shadcn@latest add <component>` to add new shadcn components as needed
 - **No Native Dialogs**: Never use native `alert()` or `confirm()` dialogs. Always use shadcn AlertDialog, Dialog, or Sonner toast components instead
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-## Next.js: ALWAYS read docs before coding
-
-Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
-
-<!-- END:nextjs-agent-rules -->
