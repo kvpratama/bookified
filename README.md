@@ -1,36 +1,11 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+We are building a premium AI reading environment designed to feel like stepping into a quiet library. Warm lighting tones, subtle textures, and elegant serif typography create the atmosphere of sitting at a long wooden desk with a book open before you. The space is calm, intentional, and free from distraction — crafted for those who value depth over noise.
 
-## Getting Started
+Within this refined setting, readers can converse with their books. Our AI sits beside you like a thoughtful study companion — intelligent, composed, and never intrusive. It offers clear explanations, structured insights, and guided prompts that deepen understanding without overwhelming the reading experience.
 
-First, run the development server:
+This transforms reading from passive consumption into an interactive, guided learning ritual. It is not overly technical or loud; it is sophisticated, confident, and focused. A sanctuary for serious readers — where books think back, and study becomes immersive.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Design this product as if you are crafting a private reading room, not a tech interface. The atmosphere should feel warm, intimate, and intentional — inspired by classic libraries and long wooden desks under soft amber light. Use a restrained, warm color palette: deep walnut browns, muted parchment creams, soft charcoal, and subtle brass accents. Typography should lean toward elegant serif for reading (highly legible, generous line height, beautiful rhythm) paired with a minimal, refined sans-serif for UI elements. Spacing must breathe. Nothing should feel crowded, flashy, or hurried. The interface should feel quiet — almost reverent.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The AI should not feel like a chatbot; it should feel like a composed study companion. Avoid bright message bubbles or overly modern UI tropes. Integrate the AI responses into the reading flow — as margin notes, footnotes, or gently separated commentary panels. Animations must be slow and subtle, like turning a page or light shifting across a desk. No harsh contrasts, no aggressive notifications. Every interaction should reinforce calm focus, intellectual depth, and premium craftsmanship. This is not a productivity app — it is a sanctuary for thinking.
