@@ -24,8 +24,17 @@ const mockDocuments = vi.hoisted(() => [
 
 vi.mock("@/lib/store", () => ({
   useAppStore: (
-    selector: (state: { documents: typeof mockDocuments }) => unknown,
-  ) => selector({ documents: mockDocuments }),
+    selector: (state: {
+      documents: typeof mockDocuments;
+      lastOpenedId: string | null;
+      setLastOpened: (id: string) => void;
+    }) => unknown,
+  ) =>
+    selector({
+      documents: mockDocuments,
+      lastOpenedId: "test-1",
+      setLastOpened: vi.fn(),
+    }),
 }));
 
 describe("DashboardPage", () => {

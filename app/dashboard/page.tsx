@@ -5,12 +5,16 @@ import { format } from "date-fns";
 import { Search, Filter, LayoutGrid, List, Upload, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/lib/store";
+import { ContinueReading } from "@/components/dashboard/ContinueReading";
 
 export default function DashboardPage() {
   const router = useRouter();
   const documents = useAppStore((state) => state.documents);
+  const lastOpenedId = useAppStore((state) => state.lastOpenedId);
+  const setLastOpened = useAppStore((state) => state.setLastOpened);
 
   const bookCount = documents.length;
+  const lastOpenedBook = documents.find((doc) => doc.id === lastOpenedId);
 
   return (
     <div className="flex flex-col min-h-screen max-w-7xl mx-auto w-full px-4 sm:px-6 py-12">
@@ -67,6 +71,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Continue Reading Section */}
+      {lastOpenedBook && (
+        <div className="mb-12">
+          <ContinueReading document={lastOpenedBook} />
+        </div>
+      )}
+
       {/* Section Heading */}
       <div className="mb-6">
         <h2 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
@@ -87,7 +98,10 @@ export default function DashboardPage() {
             <div
               key={doc.id}
               className="group cursor-pointer flex flex-col"
-              onClick={() => router.push(`/chat/${doc.id}`)}
+              onClick={() => {
+                setLastOpened(doc.id);
+                router.push(`/chat/${doc.id}`);
+              }}
             >
               {/* Cover Image Placeholder */}
               <div className="relative aspect-3/4 w-full bg-muted overflow-hidden shadow-sm group-hover:shadow-md transition-shadow duration-300 mb-4">

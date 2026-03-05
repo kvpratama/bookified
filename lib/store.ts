@@ -20,8 +20,10 @@ export interface ChatMessage {
 interface AppState {
   documents: PdfDocument[];
   chats: Record<string, ChatMessage[]>;
+  lastOpenedId: string | null;
   addDocument: (doc: PdfDocument) => void;
   addMessage: (pdfId: string, message: ChatMessage) => void;
+  setLastOpened: (id: string) => void;
 }
 
 const MOCK_DOCUMENTS: PdfDocument[] = [
@@ -102,6 +104,7 @@ const INITIAL_CHATS: Record<string, ChatMessage[]> = {
 export const useAppStore = create<AppState>((set) => ({
   documents: MOCK_DOCUMENTS,
   chats: INITIAL_CHATS,
+  lastOpenedId: "1",
   addDocument: (doc) =>
     set((state) => ({
       documents: [doc, ...state.documents],
@@ -116,4 +119,5 @@ export const useAppStore = create<AppState>((set) => ({
         },
       };
     }),
+  setLastOpened: (id) => set({ lastOpenedId: id }),
 }));
