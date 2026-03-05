@@ -120,12 +120,12 @@ export default function DashboardPage() {
                   </div>
                 )}
                 {/* Simulated reading progress bar */}
-                <div className="absolute bottom-0 left-0 h-1 bg-[#d5a05a] w-[35%] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute bottom-0 left-0 h-1 bg-accent-foreground w-[35%] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
 
               {/* Text Meta */}
               <div className="flex flex-col">
-                <h3 className="font-serif text-[17px] text-foreground leading-snug mb-1 line-clamp-1 group-hover:text-[#d5a05a] transition-colors">
+                <h3 className="font-serif text-[17px] text-foreground leading-snug mb-1 line-clamp-1 group-hover:text-accent-foreground transition-colors">
                   {doc.name.replace(".pdf", "").replace(/_/g, " ")}
                 </h3>
                 <p className="text-[13px] text-muted-foreground mb-3 line-clamp-1">

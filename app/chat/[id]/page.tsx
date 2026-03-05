@@ -36,11 +36,11 @@ export default function ChatPage({
   if (!currentPdf) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] text-center p-4">
-        <FileText className="w-12 h-12 text-zinc-300 dark:text-zinc-700 mb-4" />
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+        <FileText className="w-12 h-12 text-muted-foreground mb-4" />
+        <h2 className="text-xl font-semibold text-foreground mb-2">
           Document not found
         </h2>
-        <p className="text-zinc-500 dark:text-zinc-400 mb-6">
+        <p className="text-muted-foreground mb-6">
           The PDF you are trying to chat with doesn&apos;t exist or was removed.
         </p>
         <Button onClick={() => router.push("/dashboard")}>
@@ -105,14 +105,14 @@ export default function ChatPage({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] max-w-4xl mx-auto w-full bg-white dark:bg-zinc-950 border-x border-zinc-200 dark:border-zinc-800 shadow-sm">
+    <div className="flex flex-col h-[calc(100vh-4rem)] max-w-4xl mx-auto w-full bg-background border-x border-border shadow-sm">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-10 shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/50 backdrop-blur-sm sticky top-0 z-10 shrink-0">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => router.push("/dashboard")}
-          className="shrink-0 -ml-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className="shrink-0 -ml-2 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="w-5 h-5" />
           <span className="sr-only">Back</span>
@@ -157,13 +157,13 @@ export default function ChatPage({
                 key={msg.id}
                 className={`flex gap-3 max-w-[85%] ${msg.role === "user" ? "self-end flex-row-reverse" : "self-start"}`}
               >
-                <Avatar className="w-8 h-8 shrink-0 mt-1 border border-zinc-200 dark:border-zinc-800">
+                <Avatar className="w-8 h-8 shrink-0 mt-1 border border-border">
                   {msg.role === "user" ? (
-                    <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                    <AvatarFallback className="bg-muted text-muted-foreground">
                       <User className="w-4 h-4" />
                     </AvatarFallback>
                   ) : (
-                    <AvatarFallback className="bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
                       <Sparkles className="w-4 h-4" />
                     </AvatarFallback>
                   )}
@@ -181,7 +181,7 @@ export default function ChatPage({
                   >
                     {msg.content}
                   </div>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 px-1 font-medium select-none">
+                  <span className="text-[10px] text-muted-foreground px-1 font-medium select-none">
                     {formatTime(msg.timestamp)}
                   </span>
                 </div>
@@ -191,15 +191,15 @@ export default function ChatPage({
 
           {isTyping && (
             <div className="flex gap-3 max-w-[85%] self-start">
-              <Avatar className="w-8 h-8 shrink-0 mt-1 border border-zinc-200 dark:border-zinc-800">
-                <AvatarFallback className="bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900">
+              <Avatar className="w-8 h-8 shrink-0 mt-1 border border-border">
+                <AvatarFallback className="bg-primary text-primary-foreground">
                   <Sparkles className="w-4 h-4" />
                 </AvatarFallback>
               </Avatar>
-              <div className="bg-zinc-100 dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-4 py-3.5 flex gap-1 items-center h-[42px]">
-                <div className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-600 rounded-full animate-bounce"></div>
+              <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3.5 flex gap-1 items-center h-[42px]">
+                <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"></div>
               </div>
             </div>
           )}
@@ -208,19 +208,19 @@ export default function ChatPage({
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="p-3 sm:p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 mt-auto shrink-0">
+      <div className="p-3 sm:p-4 bg-background border-t border-border mt-auto shrink-0">
         <div className="relative flex items-end gap-2 max-w-3xl mx-auto">
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about this document..."
-            className="pr-12 py-6 text-[15px] bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 focus-visible:ring-1 focus-visible:ring-zinc-400 shadow-sm"
+            className="pr-12 py-6 text-[15px] bg-muted border-border focus-visible:ring-1 focus-visible:ring-ring shadow-sm"
             disabled={isTyping}
           />
           <Button
             size="icon"
-            className="absolute right-1.5 top-1.5 h-auto py-1.5 px-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 shadow-sm"
+            className="absolute right-1.5 top-1.5 h-auto py-1.5 px-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isTyping}
           >
@@ -228,7 +228,7 @@ export default function ChatPage({
             <span className="sr-only">Send message</span>
           </Button>
         </div>
-        <p className="text-center text-[10px] text-zinc-400 mt-2.5 font-medium select-none">
+        <p className="text-center text-[10px] text-muted-foreground mt-2.5 font-medium select-none">
           AI can make mistakes. Consider verifying important information.
         </p>
       </div>

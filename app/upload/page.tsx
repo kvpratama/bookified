@@ -127,7 +127,7 @@ export default function UploadPage() {
         </p>
       </div>
 
-      <Card className="w-full shadow-sm border-zinc-200 dark:border-zinc-800">
+      <Card className="w-full shadow-sm border-border">
         <CardContent className="p-6">
           {uploadStatus === "idle" && (
             <div
@@ -197,7 +197,7 @@ export default function UploadPage() {
 
                 {uploadStatus === "uploading" && (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                    <div className="flex justify-between text-xs text-muted-foreground font-medium">
                       <span>Uploading...</span>
                       <span>{uploadProgress}%</span>
                     </div>
@@ -206,7 +206,7 @@ export default function UploadPage() {
                 )}
 
                 {uploadStatus === "success" && (
-                  <div className="flex flex-col gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <div className="flex flex-col gap-3 pt-4 border-t border-border">
                     <Button
                       onClick={() => router.push("/dashboard")}
                       className="w-full"
