@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Search, Filter, LayoutGrid, List, Upload, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { ContinueReading } from "@/components/dashboard/ContinueReading";
 import Image from "next/image";
@@ -30,13 +31,10 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => router.push("/upload")}
-          className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-[15px] font-medium rounded shadow-sm hover:opacity-90 transition-opacity"
-        >
+        <Button onClick={() => router.push("/upload")} size="lg">
           <Upload className="w-4 h-4" />
           Upload Book
-        </button>
+        </Button>
       </div>
 
       {/* Continue Reading Section */}
@@ -57,18 +55,18 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button className="flex items-center justify-center gap-2 px-4 py-2.5 border border-border text-foreground/70 font-medium text-[14px] rounded-md hover:bg-muted transition-colors">
+          <Button variant="outline">
             <Filter className="w-4 h-4" />
             Filter
-          </button>
+          </Button>
 
           <div className="flex items-center border border-border rounded-md p-0.5 bg-transparent">
-            <button className="p-2 text-foreground/70 hover:bg-muted rounded-sm transition-colors bg-muted">
+            <Button variant="ghost" size="icon-sm" className="bg-muted">
               <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button className="p-2 text-foreground/40 hover:text-foreground/70 hover:bg-muted rounded-sm transition-colors">
+            </Button>
+            <Button variant="ghost" size="icon-sm" className="text-foreground/40 hover:text-foreground/70">
               <List className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
