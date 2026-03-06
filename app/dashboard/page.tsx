@@ -38,6 +38,13 @@ export default function DashboardPage() {
         </button>
       </div>
 
+      {/* Continue Reading Section */}
+      {lastOpenedBook && (
+        <div className="mb-12">
+          <ContinueReading document={lastOpenedBook} />
+        </div>
+      )}
+
       {/* Action Bar */}
       <div
         suppressHydrationWarning
@@ -70,13 +77,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* Continue Reading Section */}
-      {lastOpenedBook && (
-        <div className="mb-12">
-          <ContinueReading document={lastOpenedBook} />
-        </div>
-      )}
 
       {/* Section Heading */}
       <div className="mb-6">
