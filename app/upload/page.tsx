@@ -141,6 +141,7 @@ export default function UploadPage() {
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
+              onClick={onButtonClick}
               role="button"
               tabIndex={0}
               aria-label="Upload PDF file"

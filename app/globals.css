@@ -159,4 +159,9 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Cursor pointer for all clickable elements */
+  button:hover {
+    cursor: pointer;
+  }
 }
