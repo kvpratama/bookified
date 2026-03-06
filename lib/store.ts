@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+// TODO: Replace with actual data fetching from backend
 export interface PdfDocument {
   id: string;
   name: string;

@@ -35,6 +35,7 @@ export default function UploadPage() {
 
   const simulateUpload = useCallback(
     (selectedFile: File) => {
+      // TODO: Replace with actual server action for PDF upload
       setUploadStatus("uploading");
       setUploadProgress(0);
 
@@ -65,6 +66,15 @@ export default function UploadPage() {
     },
     [addDocument],
   );
+
+  const formatBytes = (bytes: number, decimals = 2) => {
+    if (!+bytes) return "0 Bytes";
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+  };
 
   const validateAndSetFile = useCallback(
     (selectedFile: File) => {
@@ -107,15 +117,6 @@ export default function UploadPage() {
     fileInputRef.current?.click();
   };
 
-  const formatBytes = (bytes: number, decimals = 2) => {
-    if (!+bytes) return "0 Bytes";
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4 max-w-2xl mx-auto w-full">
       <div className="text-center mb-8">
@@ -140,6 +141,15 @@ export default function UploadPage() {
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
+              role="button"
+              tabIndex={0}
+              aria-label="Upload PDF file"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onButtonClick();
+                }
+              }}
             >
               <input
                 ref={fileInputRef}
@@ -196,7 +206,7 @@ export default function UploadPage() {
                 </div>
 
                 {uploadStatus === "uploading" && (
-                  <div className="space-y-2">
+                  <div className="space-y-2" role="status" aria-live="polite">
                     <div className="flex justify-between text-xs text-muted-foreground font-medium">
                       <span>Uploading...</span>
                       <span>{uploadProgress}%</span>

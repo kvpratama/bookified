@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAppStore, ChatMessage } from "@/lib/store";
+import { formatBytes } from "@/lib/utils";
 
 export default function ChatPage({
   params,
@@ -215,6 +216,7 @@ export default function ChatPage({
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about this document..."
+            aria-label="Chat message input"
             className="pr-12 py-6 text-[15px] bg-muted border-border focus-visible:ring-1 focus-visible:ring-ring shadow-sm"
             disabled={isTyping}
           />
@@ -235,13 +237,3 @@ export default function ChatPage({
     </div>
   );
 }
-
-// Utility helper for file size formatting
-const formatBytes = (bytes: number, decimals = 2) => {
-  if (!+bytes) return "0 Bytes";
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-};
