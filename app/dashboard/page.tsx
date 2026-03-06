@@ -34,7 +34,7 @@ export default function DashboardPage() {
           onClick={() => router.push("/upload")}
           className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-[15px] font-medium rounded shadow-sm hover:opacity-90 transition-opacity"
         >
-          <Upload suppressHydrationWarning className="w-4 h-4" />
+          <Upload className="w-4 h-4" />
           Upload Book
         </button>
       </div>
@@ -47,15 +47,9 @@ export default function DashboardPage() {
       )}
 
       {/* Action Bar */}
-      <div
-        suppressHydrationWarning
-        className="flex flex-col sm:flex-row items-center gap-4 mb-12"
-      >
+      <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
         <div className="relative flex-1 w-full">
-          <Search
-            suppressHydrationWarning
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
-          />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search your library..."
             className="w-full pl-10 py-5 bg-muted/50 border-transparent focus-visible:ring-1 focus-visible:ring-ring shadow-none text-[15px] placeholder:text-muted-foreground rounded-md"
@@ -64,16 +58,16 @@ export default function DashboardPage() {
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button className="flex items-center justify-center gap-2 px-4 py-2.5 border border-border text-foreground/70 font-medium text-[14px] rounded-md hover:bg-muted transition-colors">
-            <Filter suppressHydrationWarning className="w-4 h-4" />
+            <Filter className="w-4 h-4" />
             Filter
           </button>
 
           <div className="flex items-center border border-border rounded-md p-0.5 bg-transparent">
             <button className="p-2 text-foreground/70 hover:bg-muted rounded-sm transition-colors bg-muted">
-              <LayoutGrid suppressHydrationWarning className="w-4 h-4" />
+              <LayoutGrid className="w-4 h-4" />
             </button>
             <button className="p-2 text-foreground/40 hover:text-foreground/70 hover:bg-muted rounded-sm transition-colors">
-              <List suppressHydrationWarning className="w-4 h-4" />
+              <List className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -134,7 +128,7 @@ export default function DashboardPage() {
                 </p>
                 <div className="flex items-center gap-4 text-[11px] text-muted-foreground uppercase tracking-wide font-medium">
                   <span className="flex items-center gap-1.5">
-                    <Clock suppressHydrationWarning className="w-3 h-3" />
+                    <Clock className="w-3 h-3" />
                     {format(new Date(doc.uploadDate), "MMM d")}
                   </span>
                   {doc.pageCount && <span>{doc.pageCount} pages</span>}

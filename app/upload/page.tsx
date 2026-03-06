@@ -169,7 +169,7 @@ export default function UploadPage() {
           )}
 
           {error && (
-            <div className="mt-4 flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 rounded-md dark:bg-red-950/50 dark:text-red-400">
+            <div className="mt-4 flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
               <AlertCircle className="h-4 w-4" />
               {error}
             </div>

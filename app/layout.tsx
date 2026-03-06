@@ -29,7 +29,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        suppressHydrationWarning
         className={`${inter.variable} ${libreBaskerville.variable} font-sans antialiased bg-background text-foreground`}
       >
         <ThemeProvider
@@ -39,10 +38,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {/* Navigation Bar */}
-          <header
-            suppressHydrationWarning
-            className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md"
-          >
+          <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
             <div className="flex h-16 items-center justify-between px-6 max-w-7xl mx-auto w-full">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded">
@@ -56,7 +52,6 @@ export default function RootLayout({
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    suppressHydrationWarning
                   >
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
                   </svg>
