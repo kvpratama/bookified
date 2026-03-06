@@ -26,7 +26,7 @@ export default function DashboardPage() {
             Your Library
           </h1>
           <p className="text-muted-foreground text-[15px] mt-4 font-medium">
-            {bookCount} books in your collection
+            {bookCount} {bookCount === 1 ? "book" : "books"} in your collection
           </p>
         </div>
 
@@ -90,9 +90,9 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 gap-y-10 mb-16">
           {documents.map((doc) => (
-            <div
+            <button
               key={doc.id}
-              className="group cursor-pointer flex flex-col"
+              className="group cursor-pointer flex flex-col text-left"
               onClick={() => {
                 setLastOpened(doc.id);
                 router.push(`/chat/${doc.id}`);
@@ -134,7 +134,7 @@ export default function DashboardPage() {
                   {doc.pageCount && <span>{doc.pageCount} pages</span>}
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

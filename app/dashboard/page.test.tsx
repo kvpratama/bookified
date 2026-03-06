@@ -52,7 +52,7 @@ describe("DashboardPage", () => {
   it("displays the correct book count", () => {
     render(<DashboardPage />);
     expect(
-      screen.getAllByText(/1 books in your collection/i).length,
+      screen.getAllByText(/1 book in your collection/i).length,
     ).toBeGreaterThan(0);
   });
 
@@ -74,15 +74,10 @@ describe("DashboardPage", () => {
 
   it("navigates to /chat/[id] when clicking a document", () => {
     render(<DashboardPage />);
-    // Find the first h3 element containing "Test Book" and click its parent card
-    const bookTitles = screen.getAllByRole("heading", {
-      level: 3,
-      name: "Test Book",
-    });
-    const documentCard = bookTitles[0].closest('[class*="cursor-pointer"]');
-    if (documentCard) {
-      fireEvent.click(documentCard);
-      expect(mockPush).toHaveBeenCalledWith("/chat/test-1");
-    }
+    const documentCard = screen.getAllByRole("button", {
+      name: /Test Book/i,
+    })[0];
+    fireEvent.click(documentCard);
+    expect(mockPush).toHaveBeenCalledWith("/chat/test-1");
   });
 });

@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const inter = Inter({
-  variable: "--font-sans",
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 

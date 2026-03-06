@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAppStore, PdfDocument } from "@/lib/store";
+import { cn, formatBytes } from "@/lib/utils";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -14,6 +15,15 @@ export default function UploadPage() {
   const router = useRouter();
   const addDocument = useAppStore((state) => state.addDocument);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -44,13 +54,14 @@ export default function UploadPage() {
       const steps = uploadTime / intervalTime;
       let currentStep = 0;
 
-      const interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         currentStep++;
         const progress = Math.min(Math.round((currentStep / steps) * 100), 100);
         setUploadProgress(progress);
 
         if (currentStep >= steps) {
-          clearInterval(interval);
+          clearInterval(intervalRef.current!);
+          intervalRef.current = null;
           setUploadStatus("success");
 
           // Add to store
@@ -66,15 +77,6 @@ export default function UploadPage() {
     },
     [addDocument],
   );
-
-  const formatBytes = (bytes: number, decimals = 2) => {
-    if (!+bytes) return "0 Bytes";
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-  };
 
   const validateAndSetFile = useCallback(
     (selectedFile: File) => {
@@ -132,11 +134,12 @@ export default function UploadPage() {
         <CardContent className="p-6">
           {uploadStatus === "idle" && (
             <div
-              className={`relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg transition-colors duration-200 ease-in-out ${
+              className={cn(
+                "relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg transition-colors duration-200 ease-in-out",
                 dragActive
                   ? "border-primary bg-muted/50"
-                  : "border-border bg-muted/30 hover:bg-muted/50"
-              }`}
+                  : "border-border bg-muted/30 hover:bg-muted/50",
+              )}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
