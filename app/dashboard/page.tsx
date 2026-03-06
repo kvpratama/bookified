@@ -64,7 +64,11 @@ export default function DashboardPage() {
             <Button variant="ghost" size="icon-sm" className="bg-muted">
               <LayoutGrid className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon-sm" className="text-foreground/40 hover:text-foreground/70">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-foreground/40 hover:text-foreground/70"
+            >
               <List className="w-4 h-4" />
             </Button>
           </div>
