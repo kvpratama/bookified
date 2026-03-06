@@ -6,6 +6,7 @@ import { Search, Filter, LayoutGrid, List, Upload, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/lib/store";
 import { ContinueReading } from "@/components/dashboard/ContinueReading";
+import Image from "next/image";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -105,11 +106,11 @@ export default function DashboardPage() {
             >
               {/* Cover Image Placeholder */}
               <div className="relative aspect-3/4 w-full bg-muted overflow-hidden shadow-sm group-hover:shadow-md transition-shadow duration-300 mb-4">
-                {/* Fallback pattern / gradient if no image */}
                 {doc.thumbnailUrl ? (
-                  <img
+                  <Image
                     src={doc.thumbnailUrl}
                     alt={doc.name}
+                    fill
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 ease-out"
                   />
                 ) : (

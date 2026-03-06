@@ -32,8 +32,7 @@ const MOCK_DOCUMENTS: PdfDocument[] = [
     name: "The Nature of Deep Thought.pdf",
     size: 2450000,
     uploadDate: "2026-03-05T14:30:00Z",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=800",
+    thumbnailUrl: "/books.png",
     author: "Eleanor Whitmore",
     pageCount: 342,
   },
@@ -42,8 +41,7 @@ const MOCK_DOCUMENTS: PdfDocument[] = [
     name: "The Art of Seeing.pdf",
     size: 8200000,
     uploadDate: "2026-03-04T10:15:00Z",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=800",
+    thumbnailUrl: "/milknhoney.png",
     author: "Helena Rousseau",
     pageCount: 412,
   },
@@ -52,8 +50,7 @@ const MOCK_DOCUMENTS: PdfDocument[] = [
     name: "Philosophy of Silence.pdf",
     size: 1500000,
     uploadDate: "2026-02-26T09:00:00Z",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=800",
+    thumbnailUrl: "/philosopyofsilence.png",
     author: "Thomas Blackwell",
     pageCount: 298,
   },
@@ -62,8 +59,6 @@ const MOCK_DOCUMENTS: PdfDocument[] = [
     name: "Letters to a Young Scholar.pdf",
     size: 3100000,
     uploadDate: "2026-03-02T16:45:00Z",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&q=80&w=800",
     author: "Victoria Ashford",
     pageCount: 256,
   },
@@ -72,8 +67,6 @@ const MOCK_DOCUMENTS: PdfDocument[] = [
     name: "Meditations_on_Time.pdf",
     size: 5600000,
     uploadDate: "2026-01-20T11:20:00Z",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=800",
     author: "Marcus Vance",
     pageCount: 512,
   },
@@ -82,8 +75,6 @@ const MOCK_DOCUMENTS: PdfDocument[] = [
     name: "Architectural_Theory_Vol_1.pdf",
     size: 9800000,
     uploadDate: "2026-03-01T08:30:00Z",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&q=80&w=800",
     author: "Julian Thorne",
     pageCount: 720,
   },

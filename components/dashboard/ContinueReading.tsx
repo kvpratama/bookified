@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Play, BookOpen } from "lucide-react";
 import { useAppStore, type PdfDocument } from "@/lib/store";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface ContinueReadingProps {
@@ -39,9 +39,10 @@ export function ContinueReading({ document }: ContinueReadingProps) {
         {/* Book Cover */}
         <div className="relative shrink-0 w-32 md:w-36 aspect-3/4 shadow-2xl rounded-sm overflow-hidden transform group-hover:scale-[1.02] transition-transform duration-500">
           {document.thumbnailUrl ? (
-            <img
+            <Image
               src={document.thumbnailUrl}
               alt={document.name}
+              fill
               className="object-cover w-full h-full"
             />
           ) : (
