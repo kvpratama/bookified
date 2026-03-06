@@ -33,6 +33,7 @@ Never use npm or yarn for this project.
 - TypeScript strict mode; use `type` imports (`import type { X }`)
 - Functional React components (no classes); use Next.js `Image`, `Link`, etc.
 - Tailwind classes for all styling; use `cn()` from `@/lib/utils` to merge classes
+- **No hardcoded colors**: Always use semantic CSS tokens from `globals.css`. This ensures the app's palette applies consistently in both light and dark modes.
 - ESLint: next/core-web-vitals + next/typescript rules
 - Formatting: Prettier (run `pnpm format`)
 - **Colocation & Reuse (Nearest Common Ancestor):** Prioritize colocation for both sub-components and test files. When breaking a large component into smaller pieces, follow this hierarchy:
