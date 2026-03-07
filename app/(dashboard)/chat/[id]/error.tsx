@@ -17,9 +17,6 @@ export default function ChatError({
       <p className="text-muted-foreground mb-4 text-center max-w-md">
         Unable to load the chat session. Please try again later.
       </p>
-      <p className="text-xs text-muted-foreground mb-6 text-center max-w-md">
-        Error: {error.message}
-      </p>
       <Button onClick={reset}>Try again</Button>
     </div>
   );
