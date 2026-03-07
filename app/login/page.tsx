@@ -1,7 +1,12 @@
 import Image from "next/image";
 import { LoginForm } from "./login-form";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 overflow-hidden">
       {/* Background Image with Overlay */}
@@ -18,7 +23,7 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-sm animate-in fade-in zoom-in-95 duration-700">
-        <LoginForm />
+        <LoginForm next={next} />
       </div>
     </div>
   );

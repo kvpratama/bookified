@@ -23,8 +23,9 @@ import {
   Loader2,
 } from "lucide-react";
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
+  const redirectTo = next ?? "/dashboard";
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +71,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(redirectTo);
     router.refresh();
   }
 
