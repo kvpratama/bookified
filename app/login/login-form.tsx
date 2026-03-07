@@ -23,12 +23,18 @@ import {
   Loader2,
 } from "lucide-react";
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({
+  next,
+  callbackError,
+}: {
+  next?: string;
+  callbackError?: string;
+}) {
   const router = useRouter();
   const redirectTo = next ?? "/dashboard";
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(callbackError ?? null);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"email" | "otp">("email");
 
@@ -115,7 +121,7 @@ export function LoginForm({ next }: { next?: string }) {
                     id="email"
                     type="email"
                     placeholder="name@example.com"
-                    className="pl-10 bg-background/50 border-border/50 transition-all focus:ring-terracotta/20"
+                    className="pl-10 bg-background/50 border-border/50 transition-all focus:ring-ring/20"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -184,7 +190,7 @@ export function LoginForm({ next }: { next?: string }) {
                 </div>
               </div>
               {error && (
-                <div className="rounded-md bg-destructive/10 p-3">
+                <div className="rounded-md bg-destructive/10 p-3 animate-in fade-in zoom-in-95">
                   <p
                     className="text-xs font-medium text-destructive text-center"
                     role="alert"

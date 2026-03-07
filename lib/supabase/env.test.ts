@@ -11,6 +11,7 @@ describe("supabase env utilities", () => {
 
   it("supabaseUrl reads from NEXT_PUBLIC_SUPABASE_URL", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://test.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "test-key");
 
     const { supabaseUrl } = await import("./env");
 
@@ -18,6 +19,7 @@ describe("supabase env utilities", () => {
   });
 
   it("supabaseKey prefers NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY when both are set", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://test.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "publishable-key");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
 
@@ -27,7 +29,7 @@ describe("supabase env utilities", () => {
   });
 
   it("supabaseKey falls back to NEXT_PUBLIC_SUPABASE_ANON_KEY when publishable key is not set", async () => {
-    delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://test.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
 
     const { supabaseKey } = await import("./env");
