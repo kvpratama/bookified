@@ -1,8 +1,11 @@
 "use client";
 
+import { SubmitEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { validateRedirect } from "@/lib/validate-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +26,20 @@ import {
   Loader2,
 } from "lucide-react";
 
+function sanitizeAuthError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("email") && lower.includes("rate")) {
+    return "Too many attempts. Please try again later.";
+  }
+  if (lower.includes("invalid") || lower.includes("expired")) {
+    return "Invalid or expired code. Please try again.";
+  }
+  if (lower.includes("network") || lower.includes("fetch")) {
+    return "Connection issue. Please check your network.";
+  }
+  return "Unable to complete request. Please try again.";
+}
+
 export function LoginForm({
   next,
   callbackError,
@@ -31,54 +48,68 @@ export function LoginForm({
   callbackError?: string;
 }) {
   const router = useRouter();
-  const redirectTo = next ?? "/dashboard";
+  const redirectTo = validateRedirect(next);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(callbackError ?? null);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"email" | "otp">("email");
 
-  async function handleSendOtp(e: React.FormEvent) {
+  async function handleSendOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true },
-    });
+    try {
+      const supabase = createClient();
+      const { error: authError } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true },
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (authError) {
+        setError(sanitizeAuthError(authError.message));
+        toast.error("Failed to send verification code");
+        setLoading(false);
+        return;
+      }
+
       setLoading(false);
-      return;
+      setStep("otp");
+    } catch (err) {
+      setError("An unexpected error occurred");
+      toast.error("Failed to send verification code");
+      setLoading(false);
     }
-
-    setLoading(false);
-    setStep("otp");
   }
 
-  async function handleVerifyOtp(e: React.FormEvent) {
+  async function handleVerifyOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: "email",
-    });
+    try {
+      const supabase = createClient();
+      const { error: authError } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: "email",
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (authError) {
+        setError(sanitizeAuthError(authError.message));
+        toast.error("Invalid verification code");
+        setLoading(false);
+        return;
+      }
+
+      router.push(redirectTo);
+      router.refresh();
+    } catch (err) {
+      setError("An unexpected error occurred");
+      toast.error("Failed to verify code");
       setLoading(false);
-      return;
     }
-
-    router.push(redirectTo);
-    router.refresh();
   }
 
   return (

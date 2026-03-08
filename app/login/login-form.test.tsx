@@ -98,7 +98,7 @@ describe("LoginForm", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Rate limit exceeded",
+        "Unable to complete request. Please try again.",
       );
     });
   });
@@ -146,7 +146,9 @@ describe("LoginForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /verify & enter/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Invalid OTP");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Invalid or expired code. Please try again.",
+      );
     });
   });
 
@@ -229,7 +231,9 @@ describe("LoginForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /verify & enter/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Invalid OTP");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Invalid or expired code. Please try again.",
+      );
     });
 
     // Click "Return to Entry"

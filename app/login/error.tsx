@@ -14,11 +14,8 @@ export default function LoginError({
       <h2 className="text-xl font-serif text-foreground mb-2">
         Something went wrong
       </h2>
-      <p className="text-muted-foreground mb-4 text-center max-w-md">
+      <p className="text-muted-foreground mb-6 text-center max-w-md">
         Unable to load the login page. Please try again later.
-      </p>
-      <p className="text-xs text-muted-foreground mb-6 text-center max-w-md">
-        Error: {error.message}
       </p>
       <Button onClick={reset}>Try again</Button>
     </div>
