@@ -1,14 +1,23 @@
 "use client";
 
-import { SubmitEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { validateRedirect } from "@/lib/validate-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Card,
   CardContent,
@@ -25,6 +34,16 @@ import {
   ChevronLeft,
   Loader2,
 } from "lucide-react";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address."),
+  otp: z
+    .string()
+    .length(6, "Verification code must be 6 digits.")
+    .regex(/^\d+$/, "Verification code must contain only numbers."),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 function sanitizeAuthError(message: string): string {
   const lower = message.toLowerCase();
@@ -49,21 +68,31 @@ export function LoginForm({
 }) {
   const router = useRouter();
   const redirectTo = validateRedirect(next);
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(callbackError ?? null);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"email" | "otp">("email");
 
-  async function handleSendOtp(e: SubmitEvent<HTMLFormElement>) {
-    e.preventDefault();
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      otp: "",
+    },
+  });
+
+  const email = form.watch("email");
+
+  async function handleSendOtp() {
+    const isValid = await form.trigger("email");
+    if (!isValid) return;
+
     setError(null);
     setLoading(true);
 
     try {
       const supabase = createClient();
       const { error: authError } = await supabase.auth.signInWithOtp({
-        email,
+        email: form.getValues("email"),
         options: { shouldCreateUser: true },
       });
 
@@ -83,16 +112,15 @@ export function LoginForm({
     }
   }
 
-  async function handleVerifyOtp(e: SubmitEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleVerifyOtp(data: LoginFormValues) {
     setError(null);
     setLoading(true);
 
     try {
       const supabase = createClient();
       const { error: authError } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
+        email: data.email,
+        token: data.otp,
         type: "email",
       });
 
@@ -133,130 +161,159 @@ export function LoginForm({
       </CardHeader>
 
       <div className="relative overflow-hidden">
-        {step === "email" ? (
-          <form
-            onSubmit={handleSendOtp}
-            className="animate-in fade-in slide-in-from-right-4 duration-500"
-          >
-            <CardContent className="space-y-4 px-8">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="email"
-                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+        <Form {...form}>
+          {step === "email" ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendOtp();
+              }}
+              className="animate-in fade-in slide-in-from-right-4 duration-500"
+            >
+              <CardContent className="space-y-4 px-8">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel
+                        htmlFor="email"
+                        className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
+                      >
+                        Email Address
+                      </FormLabel>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
+                        <FormControl>
+                          <Input
+                            id="email"
+                            placeholder="name@example.com"
+                            className="pl-10 bg-background/50 border-border/50 transition-all focus:ring-ring/20"
+                            {...field}
+                            autoFocus
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                {error && (
+                  <div className="rounded-md bg-destructive/10 p-3 animate-in fade-in zoom-in-95">
+                    <p
+                      className="text-xs font-medium text-destructive text-center"
+                      role="alert"
+                    >
+                      {error}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="px-8 pb-8 pt-4">
+                <Button
+                  type="submit"
+                  className="w-full h-11 transition-all hover:-translate-y-px active:translate-y-0"
+                  disabled={loading}
                 >
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    className="pl-10 bg-background/50 border-border/50 transition-all focus:ring-ring/20"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoFocus
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Preparing Entrance...
+                    </>
+                  ) : (
+                    <>
+                      Continue to Sanctuary
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </CardFooter>
+            </form>
+          ) : (
+            <form
+              onSubmit={form.handleSubmit(handleVerifyOtp)}
+              className="animate-in fade-in slide-in-from-right-4 duration-500"
+            >
+              <CardContent className="space-y-4 px-8">
+                <div className="space-y-2 text-center">
+                  <p className="text-xs text-muted-foreground mb-4">
+                    We&apos;ve sent a 6-digit code to <br />
+                    <span className="font-semibold text-foreground">
+                      {email}
+                    </span>
+                  </p>
+                  <FormField
+                    control={form.control}
+                    name="otp"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <div className="relative">
+                          <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
+                          <FormControl>
+                            <Input
+                              id="otp"
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="000000"
+                              className="pl-10 text-center tracking-[0.5em] font-mono text-lg bg-background/50 border-border/50"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value.replace(/[^0-9]/g, ""),
+                                )
+                              }
+                              maxLength={6}
+                              autoFocus
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage className="text-[10px]" />
+                      </FormItem>
+                    )}
                   />
                 </div>
-              </div>
-              {error && (
-                <div className="rounded-md bg-destructive/10 p-3 animate-in fade-in zoom-in-95">
-                  <p
-                    className="text-xs font-medium text-destructive text-center"
-                    role="alert"
-                  >
-                    {error}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="px-8 pb-8 pt-4">
-              <Button
-                type="submit"
-                className="w-full h-11 transition-all hover:-translate-y-px active:translate-y-0"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Preparing Entrance...
-                  </>
-                ) : (
-                  <>
-                    Continue to Sanctuary
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
+                {error && (
+                  <div className="rounded-md bg-destructive/10 p-3 animate-in fade-in zoom-in-95">
+                    <p
+                      className="text-xs font-medium text-destructive text-center"
+                      role="alert"
+                    >
+                      {error}
+                    </p>
+                  </div>
                 )}
-              </Button>
-            </CardFooter>
-          </form>
-        ) : (
-          <form
-            onSubmit={handleVerifyOtp}
-            className="animate-in fade-in slide-in-from-right-4 duration-500"
-          >
-            <CardContent className="space-y-4 px-8">
-              <div className="space-y-2 text-center">
-                <p className="text-xs text-muted-foreground mb-4">
-                  We&apos;ve sent a 6-digit code to <br />
-                  <span className="font-semibold text-foreground">{email}</span>
-                </p>
-                <div className="relative">
-                  <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
-                  <Input
-                    id="otp"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="000000"
-                    className="pl-10 text-center tracking-[0.5em] font-mono text-lg bg-background/50 border-border/50"
-                    value={otp}
-                    onChange={(e) =>
-                      setOtp(e.target.value.replace(/[^0-9]/g, ""))
-                    }
-                    required
-                    maxLength={6}
-                    autoFocus
-                  />
-                </div>
-              </div>
-              {error && (
-                <div className="rounded-md bg-destructive/10 p-3 animate-in fade-in zoom-in-95">
-                  <p
-                    className="text-xs font-medium text-destructive text-center"
-                    role="alert"
-                  >
-                    {error}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4 px-8 pb-8 pt-4">
-              <Button type="submit" className="w-full h-11" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Opening Doors...
-                  </>
-                ) : (
-                  "Verify & Enter"
-                )}
-              </Button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("email");
-                  setOtp("");
-                  setError(null);
-                }}
-                className="group flex items-center justify-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <ChevronLeft className="mr-1 h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
-                Return to Entry
-              </button>
-            </CardFooter>
-          </form>
-        )}
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4 px-8 pb-8 pt-4">
+                <Button
+                  type="submit"
+                  className="w-full h-11"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Opening Doors...
+                    </>
+                  ) : (
+                    "Verify & Enter"
+                  )}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("email");
+                    form.setValue("otp", "");
+                    setError(null);
+                  }}
+                  className="group flex items-center justify-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <ChevronLeft className="mr-1 h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
+                  Return to Entry
+                </button>
+              </CardFooter>
+            </form>
+          )}
+        </Form>
       </div>
     </Card>
   );
