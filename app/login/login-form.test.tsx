@@ -8,14 +8,6 @@ import {
 } from "@testing-library/react";
 import { LoginForm } from "./login-form";
 
-// Mock next/navigation
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    refresh: vi.fn(),
-  }),
-}));
-
 // Mock supabase client
 const mockSignInWithOtp = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/client", () => ({

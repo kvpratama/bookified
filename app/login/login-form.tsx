@@ -98,7 +98,8 @@ export function LoginForm({
 
       setLoading(false);
       setStep("sent");
-    } catch {
+    } catch (error) {
+      console.error(error);
       setError("An unexpected error occurred");
       toast.error("Failed to send magic link");
       setLoading(false);
@@ -120,7 +121,7 @@ export function LoginForm({
           <CardDescription className="text-sm font-medium text-muted-foreground/80">
             {step === "email"
               ? "Your digital reading enclave"
-              : "We sent a magic link to your inbox"}
+              : "We sent a link to your inbox"}
           </CardDescription>
         </div>
       </CardHeader>
@@ -204,7 +205,7 @@ export function LoginForm({
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                We&apos;ve sent a magic link to
+                We&apos;ve sent a link to
                 <br />
                 <span className="font-semibold text-foreground">{email}</span>
               </p>
@@ -213,17 +214,19 @@ export function LoginForm({
               </p>
             </CardContent>
             <CardFooter className="flex justify-center px-8 pb-8 pt-4">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setStep("email");
                   setError(null);
                 }}
-                className="group flex items-center justify-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="group text-xs"
               >
                 <ChevronLeft className="mr-1 h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
                 Use a different email
-              </button>
+              </Button>
             </CardFooter>
           </div>
         )}
