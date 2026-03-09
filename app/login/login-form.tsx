@@ -7,6 +7,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { validateRedirect } from "@/lib/validate-redirect";
+import { getBaseUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -84,7 +85,7 @@ export function LoginForm({
         email: form.getValues("email"),
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+          emailRedirectTo: `${getBaseUrl()}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
         },
       });
 
