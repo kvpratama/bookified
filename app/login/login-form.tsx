@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,21 +25,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Mail,
-  ShieldCheck,
-  BookOpen,
-  ArrowRight,
-  ChevronLeft,
-  Loader2,
-} from "lucide-react";
+import { Mail, BookOpen, ArrowRight, ChevronLeft, Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
-  otp: z
-    .string()
-    .length(6, "Verification code must be 6 digits.")
-    .regex(/^\d+$/, "Verification code must contain only numbers."),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -49,9 +37,6 @@ function sanitizeAuthError(message: string): string {
   const lower = message.toLowerCase();
   if (lower.includes("email") && lower.includes("rate")) {
     return "Too many attempts. Please try again later.";
-  }
-  if (lower.includes("invalid") || lower.includes("expired")) {
-    return "Invalid or expired code. Please try again.";
   }
   if (lower.includes("network") || lower.includes("fetch")) {
     return "Connection issue. Please check your network.";
@@ -70,25 +55,23 @@ export function LoginForm({
   next?: string;
   callbackError?: string;
 }) {
-  const router = useRouter();
   const redirectTo = validateRedirect(next);
   const [error, setError] = useState<string | null>(
     callbackError ? (CALLBACK_ERROR_MESSAGES[callbackError] ?? null) : null,
   );
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"email" | "otp">("email");
+  const [step, setStep] = useState<"email" | "sent">("email");
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
-      otp: "",
     },
   });
 
   const email = form.watch("email");
 
-  async function handleSendOtp() {
+  async function handleSendMagicLink() {
     const isValid = await form.trigger("email");
     if (!isValid) return;
 
@@ -99,49 +82,24 @@ export function LoginForm({
       const supabase = createClient();
       const { error: authError } = await supabase.auth.signInWithOtp({
         email: form.getValues("email"),
-        options: { shouldCreateUser: true },
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+        },
       });
 
       if (authError) {
         setError(sanitizeAuthError(authError.message));
-        toast.error("Failed to send verification code");
+        toast.error("Failed to send magic link");
         setLoading(false);
         return;
       }
 
       setLoading(false);
-      setStep("otp");
-    } catch (err) {
+      setStep("sent");
+    } catch {
       setError("An unexpected error occurred");
-      toast.error("Failed to send verification code");
-      setLoading(false);
-    }
-  }
-
-  async function handleVerifyOtp(data: LoginFormValues) {
-    setError(null);
-    setLoading(true);
-
-    try {
-      const supabase = createClient();
-      const { error: authError } = await supabase.auth.verifyOtp({
-        email: data.email,
-        token: data.otp,
-        type: "email",
-      });
-
-      if (authError) {
-        setError(sanitizeAuthError(authError.message));
-        toast.error("Invalid verification code");
-        setLoading(false);
-        return;
-      }
-
-      router.push(redirectTo);
-      router.refresh();
-    } catch (err) {
-      setError("An unexpected error occurred");
-      toast.error("Failed to verify code");
+      toast.error("Failed to send magic link");
       setLoading(false);
     }
   }
@@ -156,23 +114,23 @@ export function LoginForm({
         </div>
         <div className="space-y-1">
           <CardTitle className="font-serif text-3xl tracking-tight">
-            {step === "email" ? "Sanctuary" : "Verification"}
+            {step === "email" ? "Sanctuary" : "Check Your Email"}
           </CardTitle>
           <CardDescription className="text-sm font-medium text-muted-foreground/80">
             {step === "email"
               ? "Your digital reading enclave"
-              : "Enter the code sent to your email"}
+              : "We sent a magic link to your inbox"}
           </CardDescription>
         </div>
       </CardHeader>
 
       <div className="relative overflow-hidden">
-        <Form {...form}>
-          {step === "email" ? (
+        {step === "email" ? (
+          <Form {...form}>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleSendOtp();
+                handleSendMagicLink();
               }}
               className="animate-in fade-in slide-in-from-right-4 duration-500"
             >
@@ -235,94 +193,39 @@ export function LoginForm({
                 </Button>
               </CardFooter>
             </form>
-          ) : (
-            <form
-              onSubmit={form.handleSubmit(handleVerifyOtp)}
-              className="animate-in fade-in slide-in-from-right-4 duration-500"
-            >
-              <CardContent className="space-y-4 px-8">
-                <div className="space-y-2 text-center">
-                  <p className="text-xs text-muted-foreground mb-4">
-                    We&apos;ve sent a 6-digit code to <br />
-                    <span className="font-semibold text-foreground">
-                      {email}
-                    </span>
-                  </p>
-                  <FormField
-                    control={form.control}
-                    name="otp"
-                    render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <FormLabel htmlFor="otp" className="sr-only">
-                          Verification code
-                        </FormLabel>
-                        <div className="relative">
-                          <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
-                          <FormControl>
-                            <Input
-                              id="otp"
-                              type="text"
-                              inputMode="numeric"
-                              placeholder="000000"
-                              className="pl-10 text-center tracking-[0.5em] font-mono text-lg bg-background/50 border-border/50"
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value.replace(/[^0-9]/g, ""),
-                                )
-                              }
-                              maxLength={6}
-                              autoFocus
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
+          </Form>
+        ) : (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+            <CardContent className="space-y-4 px-8 text-center">
+              <div className="flex justify-center">
+                <div className="rounded-full bg-primary/10 p-4">
+                  <Mail className="h-8 w-8 text-primary" />
                 </div>
-                {error && (
-                  <div className="rounded-md bg-destructive/10 p-3 animate-in fade-in zoom-in-95">
-                    <p
-                      className="text-xs font-medium text-destructive text-center"
-                      role="alert"
-                    >
-                      {error}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex flex-col gap-4 px-8 pb-8 pt-4">
-                <Button
-                  type="submit"
-                  className="w-full h-11"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Opening Doors...
-                    </>
-                  ) : (
-                    "Verify & Enter"
-                  )}
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep("email");
-                    form.setValue("otp", "");
-                    setError(null);
-                  }}
-                  className="group flex items-center justify-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <ChevronLeft className="mr-1 h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
-                  Return to Entry
-                </button>
-              </CardFooter>
-            </form>
-          )}
-        </Form>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                We&apos;ve sent a magic link to
+                <br />
+                <span className="font-semibold text-foreground">{email}</span>
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                Click the link in your email to sign in. You can close this tab.
+              </p>
+            </CardContent>
+            <CardFooter className="flex justify-center px-8 pb-8 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("email");
+                  setError(null);
+                }}
+                className="group flex items-center justify-center text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ChevronLeft className="mr-1 h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
+                Use a different email
+              </button>
+            </CardFooter>
+          </div>
+        )}
       </div>
     </Card>
   );
