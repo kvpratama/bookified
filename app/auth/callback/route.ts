@@ -8,8 +8,8 @@ export async function GET(request: Request) {
   const next = validateRedirect(searchParams.get("next") ?? undefined);
 
   if (code) {
-    const supabase = await createClient();
     try {
+      const supabase = await createClient();
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
         return NextResponse.redirect(`${origin}${next}`);
