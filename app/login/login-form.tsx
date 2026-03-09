@@ -247,6 +247,9 @@ export function LoginForm({
                     name="otp"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
+                        <FormLabel htmlFor="otp" className="sr-only">
+                          Verification code
+                        </FormLabel>
                         <div className="relative">
                           <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
                           <FormControl>

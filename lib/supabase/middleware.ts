@@ -13,15 +13,15 @@ export async function updateSession(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value),
-        );
+        cookiesToSet.forEach(({ name, value }) => {
+          request.cookies.set(name, value);
+        });
         supabaseResponse = NextResponse.next({
           request,
         });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options),
-        );
+        cookiesToSet.forEach(({ name, value, options }) => {
+          supabaseResponse.cookies.set(name, value, options);
+        });
       },
     },
   });
@@ -30,16 +30,23 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
+  const pathname = request.nextUrl.pathname;
+  const isPublic =
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === "/auth" ||
+    pathname.startsWith("/auth/");
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     const originalPath = request.nextUrl.pathname + request.nextUrl.search;
     url.pathname = "/login";
     url.searchParams.set("next", originalPath);
-    return NextResponse.redirect(url);
+    supabaseResponse.headers.set("Location", url.toString());
+    return new Response(supabaseResponse.body, {
+      status: 307,
+      headers: supabaseResponse.headers,
+    });
   }
 
   return supabaseResponse;

@@ -6,7 +6,9 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const params = await searchParams;
+  const next = Array.isArray(params.next) ? params.next[0] : params.next;
+  const error = Array.isArray(params.error) ? params.error[0] : params.error;
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 overflow-hidden">
       {/* Background Image with Overlay */}

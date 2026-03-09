@@ -1,0 +1,10 @@
+# Ignore artifacts:
+build
+coverage
+
+#
+pnpm-lock.yaml
+
+# src/lib/supabase/database.types.ts
+
+*.md
