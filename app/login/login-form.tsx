@@ -59,6 +59,10 @@ function sanitizeAuthError(message: string): string {
   return "Unable to complete request. Please try again.";
 }
 
+const CALLBACK_ERROR_MESSAGES: Record<string, string> = {
+  auth_failed: "Authentication failed. Please try again.",
+};
+
 export function LoginForm({
   next,
   callbackError,
@@ -68,7 +72,9 @@ export function LoginForm({
 }) {
   const router = useRouter();
   const redirectTo = validateRedirect(next);
-  const [error, setError] = useState<string | null>(callbackError ?? null);
+  const [error, setError] = useState<string | null>(
+    callbackError ? (CALLBACK_ERROR_MESSAGES[callbackError] ?? null) : null,
+  );
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"email" | "otp">("email");
 

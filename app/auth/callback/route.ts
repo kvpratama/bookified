@@ -15,7 +15,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(
-    `${origin}/login?error=Authentication+failed.+Please+try+again.`,
-  );
+  return NextResponse.redirect(`${origin}/login?error=auth_failed`);
 }
