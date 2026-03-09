@@ -9,11 +9,19 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+    try {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+    } catch {
+      return NextResponse.redirect(
+        `${origin}/?auth_failed=true&next=${encodeURIComponent(next)}`,
+      );
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+  return NextResponse.redirect(
+    `${origin}/?auth_failed=true&next=${encodeURIComponent(next)}`,
+  );
 }
