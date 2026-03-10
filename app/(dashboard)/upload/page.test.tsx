@@ -35,7 +35,7 @@ describe("UploadPage", () => {
       screen.getByRole("heading", { name: /upload document/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /select file/i }),
+      screen.getByRole("button", { name: /browse files/i }),
     ).toBeInTheDocument();
   });
 
@@ -76,8 +76,7 @@ describe("UploadPage", () => {
     const file = createFile("valid.pdf", 1024, "application/pdf");
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(screen.getByText("Processing PDF...")).toBeInTheDocument();
-    expect(screen.getByText("valid.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Analyzing Document...")).toBeInTheDocument();
   });
 
   it("shows metadata form after extraction", async () => {
@@ -118,7 +117,7 @@ describe("UploadPage", () => {
       await screen.findByText("Failed to process PDF. Please try again."),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /select file/i }),
+      screen.getByRole("button", { name: /browse files/i }),
     ).toBeInTheDocument();
   });
 
@@ -142,10 +141,10 @@ describe("UploadPage", () => {
 
     await screen.findByLabelText(/document name/i);
 
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    fireEvent.click(screen.getByRole("button", { name: /back to upload/i }));
 
     expect(
-      screen.getByRole("button", { name: /select file/i }),
+      screen.getByRole("button", { name: /browse files/i }),
     ).toBeInTheDocument();
   });
 });

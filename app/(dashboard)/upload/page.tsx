@@ -2,11 +2,16 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { UploadCloud, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  UploadCloud,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { cn, formatBytes } from "@/lib/utils";
 import { MetadataForm } from "./metadata-form";
 import { extractPdfMetadata } from "./pdf-utils";
@@ -138,25 +143,27 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4 max-w-2xl mx-auto w-full">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-serif tracking-tight text-foreground">
+    <div className="relative flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4 max-w-2xl mx-auto w-full overflow-hidden">
+      <div className="text-center mb-10 animate-fade-in relative z-10">
+        <h1 className="text-4xl font-serif tracking-tight text-foreground sm:text-5xl">
           Upload Document
         </h1>
-        <p className="text-muted-foreground mt-2">
-          Upload a PDF to begin your intelligent reading session.
+        <p className="text-muted-foreground mt-4 max-w-md mx-auto text-lg leading-relaxed">
+          Upload a document to your library
         </p>
       </div>
 
-      <Card className="w-full shadow-sm border-border">
-        <CardContent className="p-6">
-          {uploadStatus === "idle" && (
+      <Card className="w-full border-border/40 bg-card/60 animate-slide-up relative z-10 overflow-hidden ring-1 ring-border/50">
+        <CardContent className="p-8">
+          {(uploadStatus === "idle" || uploadStatus === "extracting") && (
             <div
               className={cn(
-                "relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg transition-colors duration-200 ease-in-out hover:border-primary",
-                dragActive
-                  ? "border-primary bg-muted/50"
-                  : "border-border bg-muted/30 hover:bg-muted/50",
+                "relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-xl transition-all duration-500 ease-in-out group",
+                uploadStatus === "extracting"
+                  ? "border-primary/40 bg-muted/30 pointer-events-none"
+                  : dragActive
+                    ? "border-primary bg-primary/5 ring-4 ring-primary/10"
+                    : "border-border/60 bg-muted/20 hover:border-primary/50 hover:bg-muted/30",
               )}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -180,103 +187,110 @@ export default function UploadPage() {
                 className="hidden"
                 onChange={handleChange}
               />
-              <div className="flex flex-col items-center justify-center pt-5 pb-6 text-muted-foreground">
-                <UploadCloud className="w-10 h-10 mb-4 text-muted-foreground/60" />
-                <p className="mb-2 text-sm font-medium">
-                  <span className="font-semibold text-foreground">
-                    Click to upload
-                  </span>{" "}
-                  or drag and drop
+
+              {uploadStatus === "extracting" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl z-10">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
+                  <p className="text-sm font-medium text-foreground">
+                    Analyzing Document...
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col items-center justify-center text-center px-6">
+                <div className="w-16 h-16 mb-6 rounded-full bg-primary/10 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
+                  <UploadCloud className="w-8 h-8 text-primary" />
+                </div>
+                <p className="mb-2 text-lg font-medium text-foreground">
+                  {dragActive ? (
+                    "Drop your file here"
+                  ) : (
+                    <>
+                      <span className="font-semibold underline decoration-primary/30 underline-offset-4">
+                        Click to upload a file
+                      </span>{" "}
+                      or drag and drop
+                    </>
+                  )}
                 </p>
-                <p className="text-xs">PDF up to 10MB</p>
+                <p className="text-sm text-muted-foreground">PDF · Max 10MB</p>
               </div>
-              <Button
-                variant="secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onButtonClick();
-                }}
-                className="absolute bottom-6 mx-auto"
-              >
-                Select File
-              </Button>
+
+              <div className="mt-8">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onButtonClick();
+                  }}
+                  className="rounded-full px-8 border-primary/20 hover:bg-primary/5 transition-colors"
+                >
+                  Browse Files
+                </Button>
+              </div>
             </div>
           )}
 
           {error && (
-            <div className="mt-4 flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-              <AlertCircle className="h-4 w-4" />
+            <div className="mt-6 flex items-center gap-3 p-4 text-sm text-destructive bg-destructive/5 border border-destructive/20 rounded-xl animate-shake">
+              <AlertCircle className="h-5 w-5 shrink-0" />
               {error}
             </div>
           )}
 
-          {uploadStatus === "extracting" && file && (
-            <div className="space-y-6 py-4">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-muted rounded-lg shrink-0">
-                  <FileText className="w-6 h-6 text-primary/70" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {file.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatBytes(file.size)}
-                  </p>
-                </div>
+          {(uploadStatus === "metadata" || uploadStatus === "uploading") &&
+            extractedMetadata && (
+              <div className="animate-fade-in">
+                <MetadataForm
+                  metadata={extractedMetadata}
+                  isSubmitting={uploadStatus === "uploading"}
+                  onSubmit={handleMetadataSubmit}
+                  onCancel={resetState}
+                />
               </div>
-              <div className="space-y-2" role="status" aria-live="polite">
-                <div className="flex justify-between text-xs text-muted-foreground font-medium">
-                  <span>Processing PDF...</span>
-                </div>
-                <Progress value={undefined} className="h-2" />
-              </div>
-            </div>
-          )}
-
-          {uploadStatus === "metadata" && extractedMetadata && (
-            <MetadataForm
-              metadata={extractedMetadata}
-              isSubmitting={false}
-              onSubmit={handleMetadataSubmit}
-              onCancel={resetState}
-            />
-          )}
-
-          {uploadStatus === "uploading" && extractedMetadata && (
-            <MetadataForm
-              metadata={extractedMetadata}
-              isSubmitting={true}
-              onSubmit={handleMetadataSubmit}
-              onCancel={resetState}
-            />
-          )}
+            )}
 
           {uploadStatus === "success" && file && (
-            <div className="space-y-6 py-4">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-muted rounded-lg shrink-0">
-                  <FileText className="w-6 h-6 text-primary/70" />
+            <div className="space-y-8 py-6 animate-fade-in">
+              <div className="flex flex-col items-center text-center pb-2">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4 animate-scale-in">
+                  <CheckCircle2 className="w-10 h-10 text-primary" />
+                </div>
+                <h3 className="text-2xl font-serif text-foreground">
+                  Upload Complete
+                </h3>
+                <p className="text-muted-foreground mt-2">
+                  Your document is ready in the library.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-5 p-4 bg-primary/5 rounded-xl border border-primary/10">
+                <div className="p-3 bg-primary/20 rounded-lg shrink-0">
+                  <FileText className="w-6 h-6 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
+                  <p className="text-sm font-semibold text-foreground truncate">
                     {file.name}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground font-medium mt-1">
                     {formatBytes(file.size)}
                   </p>
                 </div>
-                <CheckCircle2 className="w-6 h-6 text-primary shrink-0" />
               </div>
 
-              <div className="flex flex-col gap-3 pt-4 border-t border-border">
+              <div className="flex flex-col gap-3 pt-6 border-t border-border/40">
                 <Button
                   onClick={() => router.push("/dashboard")}
-                  className="w-full"
+                  className="w-full rounded-xl py-6 text-sm font-medium shadow-lg shadow-primary/20"
                 >
                   Go to Dashboard
                 </Button>
-                <Button variant="ghost" onClick={resetState} className="w-full">
+                <Button
+                  variant="ghost"
+                  onClick={resetState}
+                  className="w-full rounded-xl py-6 text-muted-foreground hover:text-foreground"
+                >
                   Upload another file
                 </Button>
               </div>
