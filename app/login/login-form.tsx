@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
@@ -70,7 +70,7 @@ export function LoginForm({
     },
   });
 
-  const email = form.watch("email");
+  const email = useWatch({ control: form.control, name: "email" });
 
   async function handleSendMagicLink() {
     const isValid = await form.trigger("email");
@@ -107,11 +107,11 @@ export function LoginForm({
   }
 
   return (
-    <Card className="w-full max-w-sm overflow-hidden border-border/50 bg-card/80 shadow-2xl backdrop-blur-md transition-all duration-500">
+    <Card className="w-full max-w-sm overflow-hidden border-border/50 bg-card/80 shadow-2xl backdrop-blur-md transition-shadow duration-500">
       <CardHeader className="space-y-4 pb-8 text-center">
         <div className="flex justify-center">
           <div className="rounded-full bg-primary/5 p-3 text-primary ring-1 ring-primary/20">
-            <BookOpen className="h-6 w-6" />
+            <BookOpen className="h-6 w-6" aria-hidden="true" />
           </div>
         </div>
         <div className="space-y-1">
@@ -121,7 +121,7 @@ export function LoginForm({
           <CardDescription className="text-sm font-medium text-muted-foreground/80">
             {step === "email"
               ? "Your digital reading enclave"
-              : "We sent a link to your inbox"}
+              : "We sent a sign-in link to your inbox"}
           </CardDescription>
         </div>
       </CardHeader>
@@ -134,7 +134,7 @@ export function LoginForm({
                 e.preventDefault();
                 handleSendMagicLink();
               }}
-              className="animate-in fade-in slide-in-from-right-4 duration-500"
+              className="animate-in fade-in slide-in-from-right-4 duration-500 motion-reduce:animate-none"
             >
               <CardContent className="space-y-4 px-8">
                 <FormField
@@ -149,14 +149,19 @@ export function LoginForm({
                         Email Address
                       </FormLabel>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
+                        <Mail
+                          className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50"
+                          aria-hidden="true"
+                        />
                         <FormControl>
                           <Input
                             id="email"
-                            placeholder="name@example.com"
-                            className="pl-10 bg-background/50 border-border/50 transition-all focus:ring-ring/20"
+                            type="email"
+                            autoComplete="email"
+                            spellCheck={false}
+                            placeholder="name@example.com…"
+                            className="pl-10 bg-background/50 border-border/50 transition-colors focus:ring-ring/20"
                             {...field}
-                            autoFocus
                           />
                         </FormControl>
                       </div>
@@ -165,7 +170,7 @@ export function LoginForm({
                   )}
                 />
                 {error && (
-                  <div className="rounded-md bg-destructive/10 p-3 animate-in fade-in zoom-in-95">
+                  <div className="rounded-md bg-destructive/10 p-3 animate-in fade-in zoom-in-95 motion-reduce:animate-none">
                     <p
                       className="text-xs font-medium text-destructive text-center"
                       role="alert"
@@ -178,13 +183,13 @@ export function LoginForm({
               <CardFooter className="px-8 pb-8 pt-4">
                 <Button
                   type="submit"
-                  className="w-full h-11 transition-all hover:-translate-y-px active:translate-y-0"
+                  className="w-full h-11 transition-transform hover:-translate-y-px active:translate-y-0"
                   disabled={loading}
                 >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Preparing Entrance...
+                      Preparing Entrance…
                     </>
                   ) : (
                     <>
@@ -197,20 +202,23 @@ export function LoginForm({
             </form>
           </Form>
         ) : (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+          <div className="animate-in fade-in slide-in-from-right-4 duration-500 motion-reduce:animate-none">
             <CardContent className="space-y-4 px-8 text-center">
               <div className="flex justify-center">
                 <div className="rounded-full bg-primary/10 p-4">
-                  <Mail className="h-8 w-8 text-primary" />
+                  <Mail className="h-8 w-8 text-primary" aria-hidden="true" />
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                We&apos;ve sent a link to
+                We sent a sign-in link to
                 <br />
                 <span className="font-semibold text-foreground">{email}</span>
               </p>
               <p className="text-xs text-muted-foreground/70">
-                Click the link in your email to sign in. You can close this tab.
+                Open the email and click the link to continue.
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                If you don&apos;t see it, check your spam folder.
               </p>
             </CardContent>
             <CardFooter className="flex justify-center px-8 pb-8 pt-4">
@@ -224,7 +232,10 @@ export function LoginForm({
                 }}
                 className="group text-xs"
               >
-                <ChevronLeft className="mr-1 h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
+                <ChevronLeft
+                  className="mr-1 h-3 w-3 transition-transform group-hover:-translate-x-0.5"
+                  aria-hidden="true"
+                />
                 Use a different email
               </Button>
             </CardFooter>
