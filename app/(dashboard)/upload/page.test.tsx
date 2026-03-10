@@ -98,9 +98,7 @@ describe("UploadPage", () => {
     const file = createFile("book.pdf", 2048, "application/pdf");
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(
-      await screen.findByLabelText(/document name/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByLabelText(/document name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/document name/i)).toHaveValue("My Document");
     expect(screen.getByLabelText(/author/i)).toHaveValue("Test Author");
   });

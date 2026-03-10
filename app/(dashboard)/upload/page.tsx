@@ -10,11 +10,17 @@ import { Progress } from "@/components/ui/progress";
 import { cn, formatBytes } from "@/lib/utils";
 import { MetadataForm } from "./metadata-form";
 import { extractPdfMetadata } from "./pdf-utils";
+import { uploadDocumentAction } from "./actions";
 import type { ExtractedMetadata, UploadMetadata } from "./upload-schema";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-type UploadStatus = "idle" | "extracting" | "metadata" | "uploading" | "success";
+type UploadStatus =
+  | "idle"
+  | "extracting"
+  | "metadata"
+  | "uploading"
+  | "success";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -105,14 +111,9 @@ export default function UploadPage() {
     }
 
     try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const result = await uploadDocumentAction(formData);
 
-      const result = await response.json();
-
-      if (!response.ok) {
+      if (result.error) {
         toast.error(result.error || "Failed to upload document");
         setUploadStatus("metadata");
         return;
@@ -191,7 +192,10 @@ export default function UploadPage() {
               </div>
               <Button
                 variant="secondary"
-                onClick={onButtonClick}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onButtonClick();
+                }}
                 className="absolute bottom-6 mx-auto"
               >
                 Select File
@@ -272,11 +276,7 @@ export default function UploadPage() {
                 >
                   Go to Dashboard
                 </Button>
-                <Button
-                  variant="ghost"
-                  onClick={resetState}
-                  className="w-full"
-                >
+                <Button variant="ghost" onClick={resetState} className="w-full">
                   Upload another file
                 </Button>
               </div>

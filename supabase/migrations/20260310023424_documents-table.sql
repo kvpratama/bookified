@@ -11,7 +11,8 @@ create table documents (
   page_count integer,
   upload_date timestamptz not null default now(),
   last_accessed timestamptz,
-  current_page integer not null default 1 check (current_page >= 1)
+  current_page integer not null default 1 check (current_page >= 1),
+  unique (user_id, name)
 );
 
 create index idx_documents_upload_date on documents(user_id, upload_date desc);
