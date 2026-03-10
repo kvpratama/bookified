@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 
-export default function ChatError({
+export default function LoginError({
   error,
   reset,
 }: {
@@ -15,7 +15,7 @@ export default function ChatError({
         Something went wrong
       </h2>
       <p className="text-muted-foreground mb-6 text-center max-w-md">
-        Unable to load the chat session. Please try again later.
+        Unable to load the login page. Please try again later.
       </p>
       <Button onClick={reset}>Try again</Button>
     </div>
