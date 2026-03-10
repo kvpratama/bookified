@@ -1,82 +1,45 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useAppStore, PdfDocument } from "@/lib/store";
 import { cn, formatBytes } from "@/lib/utils";
+import { MetadataForm } from "./metadata-form";
+import { extractPdfMetadata } from "./pdf-utils";
+import type { ExtractedMetadata, UploadMetadata } from "./upload-schema";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+type UploadStatus = "idle" | "extracting" | "metadata" | "uploading" | "success";
+
 export default function UploadPage() {
   const router = useRouter();
-  const addDocument = useAppStore((state) => state.addDocument);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
 
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState<
-    "idle" | "uploading" | "success"
-  >("idle");
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
+  const [extractedMetadata, setExtractedMetadata] =
+    useState<ExtractedMetadata | null>(null);
 
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
+  const extractMetadata = useCallback(async (selectedFile: File) => {
+    setUploadStatus("extracting");
+    setError(null);
+
+    try {
+      const metadata = await extractPdfMetadata(selectedFile);
+      setExtractedMetadata(metadata);
+      setUploadStatus("metadata");
+    } catch {
+      setError("Failed to process PDF. Please try again.");
+      setUploadStatus("idle");
     }
   }, []);
-
-  const simulateUpload = useCallback(
-    (selectedFile: File) => {
-      // TODO: Replace with actual server action for PDF upload
-      setUploadStatus("uploading");
-      setUploadProgress(0);
-
-      const uploadTime = 2000; // 2 seconds
-      const intervalTime = 100;
-      const steps = uploadTime / intervalTime;
-      let currentStep = 0;
-
-      intervalRef.current = setInterval(() => {
-        currentStep++;
-        const progress = Math.min(Math.round((currentStep / steps) * 100), 100);
-        setUploadProgress(progress);
-
-        if (currentStep >= steps) {
-          clearInterval(intervalRef.current!);
-          intervalRef.current = null;
-          setUploadStatus("success");
-
-          // Add to store
-          const newDoc: PdfDocument = {
-            id: Math.random().toString(36).substring(7),
-            name: selectedFile.name,
-            size: selectedFile.size,
-            uploadDate: new Date().toISOString(),
-          };
-          addDocument(newDoc);
-        }
-      }, intervalTime);
-    },
-    [addDocument],
-  );
 
   const validateAndSetFile = useCallback(
     (selectedFile: File) => {
@@ -90,10 +53,20 @@ export default function UploadPage() {
         return;
       }
       setFile(selectedFile);
-      simulateUpload(selectedFile);
+      extractMetadata(selectedFile);
     },
-    [simulateUpload],
+    [extractMetadata],
   );
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -119,6 +92,50 @@ export default function UploadPage() {
     fileInputRef.current?.click();
   };
 
+  const handleMetadataSubmit = async (data: UploadMetadata) => {
+    if (!file) return;
+
+    setUploadStatus("uploading");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("metadata", JSON.stringify(data));
+    if (extractedMetadata?.thumbnailDataUrl) {
+      formData.append("thumbnail", extractedMetadata.thumbnailDataUrl);
+    }
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result.error || "Failed to upload document");
+        setUploadStatus("metadata");
+        return;
+      }
+
+      setUploadStatus("success");
+      toast.success("Document uploaded successfully!");
+    } catch {
+      toast.error("Failed to upload document. Please try again.");
+      setUploadStatus("metadata");
+    }
+  };
+
+  const resetState = () => {
+    setUploadStatus("idle");
+    setFile(null);
+    setError(null);
+    setExtractedMetadata(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] p-4 max-w-2xl mx-auto w-full">
       <div className="text-center mb-8">
@@ -135,7 +152,7 @@ export default function UploadPage() {
           {uploadStatus === "idle" && (
             <div
               className={cn(
-                "relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg transition-colors duration-200 ease-in-out",
+                "relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg transition-colors duration-200 ease-in-out hover:border-primary",
                 dragActive
                   ? "border-primary bg-muted/50"
                   : "border-border bg-muted/30 hover:bg-muted/50",
@@ -189,59 +206,82 @@ export default function UploadPage() {
             </div>
           )}
 
-          {(uploadStatus === "uploading" || uploadStatus === "success") &&
-            file && (
-              <div className="space-y-6 py-4">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-muted rounded-lg shrink-0">
-                    <FileText className="w-6 h-6 text-primary/70" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {file.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatBytes(file.size)}
-                    </p>
-                  </div>
-                  {uploadStatus === "success" && (
-                    <CheckCircle2 className="w-6 h-6 text-primary shrink-0" />
-                  )}
+          {uploadStatus === "extracting" && file && (
+            <div className="space-y-6 py-4">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-muted rounded-lg shrink-0">
+                  <FileText className="w-6 h-6 text-primary/70" />
                 </div>
-
-                {uploadStatus === "uploading" && (
-                  <div className="space-y-2" role="status" aria-live="polite">
-                    <div className="flex justify-between text-xs text-muted-foreground font-medium">
-                      <span>Uploading...</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <Progress value={uploadProgress} className="h-2" />
-                  </div>
-                )}
-
-                {uploadStatus === "success" && (
-                  <div className="flex flex-col gap-3 pt-4 border-t border-border">
-                    <Button
-                      onClick={() => router.push("/dashboard")}
-                      className="w-full"
-                    >
-                      Go to Dashboard
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setUploadStatus("idle");
-                        setFile(null);
-                        setUploadProgress(0);
-                      }}
-                      className="w-full"
-                    >
-                      Upload another file
-                    </Button>
-                  </div>
-                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatBytes(file.size)}
+                  </p>
+                </div>
               </div>
-            )}
+              <div className="space-y-2" role="status" aria-live="polite">
+                <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                  <span>Processing PDF...</span>
+                </div>
+                <Progress value={undefined} className="h-2" />
+              </div>
+            </div>
+          )}
+
+          {uploadStatus === "metadata" && extractedMetadata && (
+            <MetadataForm
+              metadata={extractedMetadata}
+              isSubmitting={false}
+              onSubmit={handleMetadataSubmit}
+              onCancel={resetState}
+            />
+          )}
+
+          {uploadStatus === "uploading" && extractedMetadata && (
+            <MetadataForm
+              metadata={extractedMetadata}
+              isSubmitting={true}
+              onSubmit={handleMetadataSubmit}
+              onCancel={resetState}
+            />
+          )}
+
+          {uploadStatus === "success" && file && (
+            <div className="space-y-6 py-4">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-muted rounded-lg shrink-0">
+                  <FileText className="w-6 h-6 text-primary/70" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatBytes(file.size)}
+                  </p>
+                </div>
+                <CheckCircle2 className="w-6 h-6 text-primary shrink-0" />
+              </div>
+
+              <div className="flex flex-col gap-3 pt-4 border-t border-border">
+                <Button
+                  onClick={() => router.push("/dashboard")}
+                  className="w-full"
+                >
+                  Go to Dashboard
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={resetState}
+                  className="w-full"
+                >
+                  Upload another file
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
