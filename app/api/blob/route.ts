@@ -34,10 +34,7 @@ export async function GET(request: NextRequest) {
 
   const token = process.env.BOOKIFIED_BLOB_READ_WRITE_TOKEN;
   if (!token) {
-    return NextResponse.json(
-      { data: null, error: { message: "Unauthorized" } },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -47,10 +44,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (result?.statusCode !== 200) {
-      return NextResponse.json(
-        { data: null, error: { message: "Not found" } },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return new NextResponse(result.stream, {
@@ -62,7 +56,7 @@ export async function GET(request: NextRequest) {
     });
   } catch {
     return NextResponse.json(
-      { data: null, error: { message: "Blob retrieval failed" } },
+      { error: "Blob retrieval failed" },
       { status: 502 },
     );
   }
