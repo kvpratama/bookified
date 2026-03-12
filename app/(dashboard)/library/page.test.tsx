@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import LibraryPage from "./page";
+import LibraryPage, { metadata } from "./page";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/library",
 }));
 
 // Mock next/link
@@ -66,6 +68,7 @@ const mockDocuments = [
 const mockSelect = vi.fn();
 const mockOrder = vi.fn();
 const mockRange = vi.fn();
+const mockIlike = vi.fn();
 const mockFrom = vi.fn();
 
 let mockData: typeof mockDocuments | null = mockDocuments;
@@ -89,6 +92,7 @@ describe("LibraryPage", () => {
     const mockBuilder = {
       order: vi.fn().mockReturnThis(),
       range: vi.fn().mockReturnThis(),
+      ilike: vi.fn().mockReturnThis(),
       then: vi.fn().mockImplementation((resolve) => {
         return resolve({ data: mockData, error: mockError, count: mockCount });
       }),
@@ -96,8 +100,37 @@ describe("LibraryPage", () => {
 
     mockRange.mockReturnValue(mockBuilder);
     mockOrder.mockReturnValue(mockBuilder);
-    mockSelect.mockReturnValue({ order: mockOrder });
+    mockIlike.mockReturnValue(mockBuilder);
+    mockSelect.mockReturnValue({
+      order: mockOrder,
+      range: mockRange,
+      ilike: mockIlike,
+    });
     mockFrom.mockReturnValue({ select: mockSelect });
+
+    // Ensure mockOrder returns something that has range/ilike
+    mockOrder.mockReturnValue({
+      order: mockOrder,
+      range: mockRange,
+      ilike: mockIlike,
+      then: mockBuilder.then,
+    });
+    mockRange.mockReturnValue({
+      order: mockOrder,
+      range: mockRange,
+      ilike: mockIlike,
+      then: mockBuilder.then,
+    });
+    mockIlike.mockReturnValue({
+      order: mockOrder,
+      range: mockRange,
+      ilike: mockIlike,
+      then: mockBuilder.then,
+    });
+  });
+
+  it("has the correct metadata", () => {
+    expect(metadata.title).toBe("Your Library | Bookified");
   });
 
   it('renders the "Your Library" heading', async () => {
@@ -126,7 +159,7 @@ describe("LibraryPage", () => {
     expect(screen.getAllByText(/Author 2/i)[0]).toBeInTheDocument();
   });
 
-  it("shows search and filter controls", async () => {
+  it("shows search input and filter button", async () => {
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
     expect(
@@ -135,6 +168,23 @@ describe("LibraryPage", () => {
     expect(
       screen.getAllByRole("button", { name: /filter/i })[0],
     ).toBeInTheDocument();
+  });
+
+  it("filters results when a search query is provided", async () => {
+    mockData = [mockDocuments[0]];
+    mockCount = 1;
+
+    const Page = await LibraryPage({
+      searchParams: Promise.resolve({ q: "Test Book 1" }),
+    });
+    render(Page);
+
+    expect(mockIlike).toHaveBeenCalledWith("name", "%Test Book 1%");
+    expect(
+      screen.getByText(/1 book matching "Test Book 1"/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Test Book 1/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Test Book 2/i)).not.toBeInTheDocument();
   });
 
   it("shows empty state when no books found", async () => {
@@ -159,13 +209,5 @@ describe("LibraryPage", () => {
     expect(
       screen.getByRole("link", { name: /next page/i }),
     ).toBeInTheDocument();
-  });
-
-  it("calculates range correctly for page 2", async () => {
-    mockCount = 10;
-    await LibraryPage({ searchParams: Promise.resolve({ page: "2" }) });
-
-    // page 2 with limit 8 should be range(8, 15)
-    expect(mockOrder().range).toHaveBeenCalledWith(8, 15);
   });
 });

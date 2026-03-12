@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  Search,
   Filter,
   LayoutGrid,
   List,
@@ -8,17 +7,23 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { BookCard } from "@/components/dashboard/BookCard";
+import { SearchInput } from "./search-input";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Your Library | Bookified",
+  description: "Browse and manage your personal book collection.",
+};
 
 export default async function LibraryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, q: query } = await searchParams;
   const page = Math.max(1, parseInt(pageParam || "1", 10));
   const limit = 8;
   const from = (page - 1) * limit;
@@ -26,16 +31,18 @@ export default async function LibraryPage({
 
   const supabase = await createClient();
 
-  const {
-    data: documents,
-    error,
-    count,
-  } = await supabase
+  let dbQuery = supabase
     .from("documents")
     .select("*", { count: "exact" })
     .order("last_accessed", { ascending: false, nullsFirst: false })
     .order("upload_date", { ascending: false })
     .range(from, to);
+
+  if (query) {
+    dbQuery = dbQuery.ilike("name", `%${query}%`);
+  }
+
+  const { data: documents, error, count } = await dbQuery;
 
   if (error) {
     throw new Error("Failed to load your library. Please try again later.");
@@ -54,8 +61,8 @@ export default async function LibraryPage({
             Your Library
           </h1>
           <p className="text-muted-foreground text-[15px] mt-4 font-medium">
-            {totalCount} {totalCount === 1 ? "book" : "books"} in your
-            collection
+            {totalCount} {totalCount === 1 ? "book" : "books"}{" "}
+            {query ? `matching "${query}"` : "in your collection"}
           </p>
         </div>
 
@@ -70,13 +77,15 @@ export default async function LibraryPage({
       {!documents || documents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <p className="text-muted-foreground mt-1 mb-6">
-            {page > 1
-              ? "No more books to show."
-              : "No books found in your library."}
+            {query
+              ? `No books found matching "${query}".`
+              : page > 1
+                ? "No more books to show."
+                : "No books found in your library."}
           </p>
-          {page > 1 ? (
+          {query || page > 1 ? (
             <Button asChild variant="outline">
-              <Link href="/library">Back to first page</Link>
+              <Link href="/library">Clear filters</Link>
             </Button>
           ) : (
             <Button asChild>
@@ -91,15 +100,9 @@ export default async function LibraryPage({
         <>
           {/* Action Bar */}
           <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search your library..."
-                className="w-full pl-10 py-5 bg-muted/50 border-transparent focus-visible:ring-1 focus-visible:ring-ring shadow-none text-[15px] placeholder:text-muted-foreground rounded-md"
-              />
-            </div>
+            <SearchInput defaultValue={query} />
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+            {/* <div className="flex items-center gap-3 w-full sm:w-auto">
               <Button variant="outline">
                 <Filter className="w-4 h-4" />
                 Filter
@@ -117,13 +120,13 @@ export default async function LibraryPage({
                   <List className="w-4 h-4" />
                 </Button>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Section Heading */}
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
-              All Books
+              {query ? `Search results for "${query}"` : "All Books"}
             </h2>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">
               Showing {from + 1}-{from + currentCount} of {totalCount}
@@ -147,7 +150,9 @@ export default async function LibraryPage({
                 disabled={page <= 1}
                 className={page <= 1 ? "pointer-events-none opacity-50" : ""}
               >
-                <Link href={`/library?page=${page - 1}`}>
+                <Link
+                  href={`/library?page=${page - 1}${query ? `&q=${query}` : ""}`}
+                >
                   <ChevronLeft className="w-4 h-4" />
                   <span className="sr-only">Previous Page</span>
                 </Link>
@@ -166,7 +171,9 @@ export default async function LibraryPage({
                   page >= totalPages ? "pointer-events-none opacity-50" : ""
                 }
               >
-                <Link href={`/library?page=${page + 1}`}>
+                <Link
+                  href={`/library?page=${page + 1}${query ? `&q=${query}` : ""}`}
+                >
                   <ChevronRight className="w-4 h-4" />
                   <span className="sr-only">Next Page</span>
                 </Link>
