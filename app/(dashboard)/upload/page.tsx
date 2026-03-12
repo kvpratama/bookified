@@ -49,7 +49,9 @@ export default function UploadPage() {
       setExtractedMetadata(metadata);
       setUploadStatus("metadata");
     } catch {
-      setError("Failed to process PDF. Please try again.");
+      const errorMessage = "Failed to process PDF. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
       setUploadStatus("idle");
     }
   }, []);
@@ -109,6 +111,9 @@ export default function UploadPage() {
 
     setUploadStatus("uploading");
 
+    let pdfBlobUrl: string | undefined;
+    let thumbBlobUrl: string | undefined;
+
     try {
       // 0. Get user for path construction
       const supabase = createSupabaseClient();
@@ -154,19 +159,21 @@ export default function UploadPage() {
 
       // 2. Execute parallel uploads
       const [pdfBlob, thumbBlob] = await Promise.all(uploadPromises);
+      pdfBlobUrl = pdfBlob.url;
+      thumbBlobUrl = thumbBlob?.url;
 
       // 3. Save to database via Server Action
       const result = await saveDocumentAction({
         name: data.name,
         author: data.author,
         pageCount: data.pageCount,
-        blobUrl: pdfBlob.url,
-        thumbnailUrl: thumbBlob?.url,
+        blobUrl: pdfBlobUrl,
+        thumbnailUrl: thumbBlobUrl,
         size: file.size,
       });
 
       if (result.error) {
-        const blobUrls = [pdfBlob.url, thumbBlob?.url].filter(Boolean);
+        const blobUrls = [pdfBlobUrl, thumbBlobUrl].filter(Boolean);
         await deleteBlobsAction(blobUrls as string[]).catch(() => {});
         toast.error(result.error || "Failed to save document");
         setUploadStatus("metadata");
@@ -177,6 +184,13 @@ export default function UploadPage() {
       toast.success("Document uploaded successfully!");
     } catch (err) {
       console.error("Upload error:", err);
+
+      // Best-effort cleanup of any blobs that were uploaded before the failure
+      if (pdfBlobUrl || thumbBlobUrl) {
+        const blobUrls = [pdfBlobUrl, thumbBlobUrl].filter(Boolean);
+        await deleteBlobsAction(blobUrls as string[]).catch(() => {});
+      }
+
       toast.error("Failed to upload document. Please try again.");
       setUploadStatus("metadata");
     }
