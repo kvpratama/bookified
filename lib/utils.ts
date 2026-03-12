@@ -13,6 +13,10 @@ export function getBaseUrl(): string {
   return "http://localhost:3000";
 }
 
+export function getBlobUrl(privateUrl: string): string {
+  return `/api/blob?url=${encodeURIComponent(privateUrl)}`;
+}
+
 export function formatBytes(bytes: number, decimals = 2) {
   if (bytes < 0 || !+bytes) return "0 Bytes";
   const k = 1024;
@@ -23,4 +27,8 @@ export function formatBytes(bytes: number, decimals = 2) {
     sizes.length - 1,
   );
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
+export function formatDocumentName(name: string): string {
+  return name.replace(".pdf", "").replace(/_/g, " ");
 }
