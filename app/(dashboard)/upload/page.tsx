@@ -17,7 +17,7 @@ import { upload } from "@vercel/blob/client";
 import { MetadataForm } from "./metadata-form";
 import { extractPdfMetadata } from "./pdf-utils";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
-import { saveDocumentAction } from "./actions";
+import { saveDocumentAction, deleteBlobsAction } from "./actions";
 import type { ExtractedMetadata, UploadMetadata } from "./upload-schema";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -129,26 +129,28 @@ export default function UploadPage() {
 
       // 1. Prepare parallel uploads
       type BlobResponse = { url: string };
-      const uploadPromises: [Promise<BlobResponse>, Promise<BlobResponse | undefined>] =
-        [
-          upload(pdfPath, file, {
-            access: "private",
-            handleUploadUrl: "/api/upload",
-          }),
-          extractedMetadata?.thumbnailDataUrl
-            ? (async () => {
-                const res = await fetch(extractedMetadata.thumbnailDataUrl!);
-                const blob = await res.blob();
-                const thumbFile = new File([blob], thumbName, {
-                  type: "image/png",
-                });
-                return upload(thumbPath, thumbFile, {
-                  access: "private",
-                  handleUploadUrl: "/api/upload",
-                });
-              })()
-            : Promise.resolve(undefined),
-        ];
+      const uploadPromises: [
+        Promise<BlobResponse>,
+        Promise<BlobResponse | undefined>,
+      ] = [
+        upload(pdfPath, file, {
+          access: "private",
+          handleUploadUrl: "/api/upload",
+        }),
+        extractedMetadata?.thumbnailDataUrl
+          ? (async () => {
+              const res = await fetch(extractedMetadata.thumbnailDataUrl!);
+              const blob = await res.blob();
+              const thumbFile = new File([blob], thumbName, {
+                type: "image/png",
+              });
+              return upload(thumbPath, thumbFile, {
+                access: "private",
+                handleUploadUrl: "/api/upload",
+              });
+            })()
+          : Promise.resolve(undefined),
+      ];
 
       // 2. Execute parallel uploads
       const [pdfBlob, thumbBlob] = await Promise.all(uploadPromises);
@@ -164,6 +166,8 @@ export default function UploadPage() {
       });
 
       if (result.error) {
+        const blobUrls = [pdfBlob.url, thumbBlob?.url].filter(Boolean);
+        await deleteBlobsAction(blobUrls as string[]).catch(() => {});
         toast.error(result.error || "Failed to save document");
         setUploadStatus("metadata");
         return;

@@ -24,7 +24,10 @@ export function ContinueReading({ document }: ContinueReadingProps) {
     document.current_page &&
     document.page_count > 0 &&
     document.current_page > 0
-      ? Math.round((document.current_page / document.page_count) * 100)
+      ? Math.min(
+          Math.round((document.current_page / document.page_count) * 100),
+          100,
+        )
       : null;
 
   return (

@@ -1,6 +1,8 @@
 "use server";
 
+import { del } from "@vercel/blob";
 import { createClient } from "@/lib/supabase/server";
+import { saveDocumentSchema } from "./upload-schema";
 
 export async function saveDocumentAction(data: {
   name: string;
@@ -10,6 +12,11 @@ export async function saveDocumentAction(data: {
   thumbnailUrl?: string;
   size: number;
 }) {
+  const result = saveDocumentSchema.safeParse(data);
+  if (!result.success) {
+    return { error: result.error.errors[0].message };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -57,4 +64,34 @@ export async function saveDocumentAction(data: {
     console.error("Save error:", err);
     return { error: "Failed to save document information" };
   }
+}
+
+export async function deleteBlobsAction(urls: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const validUrls = urls.filter((url) => {
+    try {
+      const pathname = new URL(url).pathname.replace(/^\//, "");
+      return pathname.startsWith(`${user.id}/`);
+    } catch {
+      return false;
+    }
+  });
+
+  try {
+    await del(validUrls, {
+      token: process.env.BOOKIFIED_BLOB_READ_WRITE_TOKEN!,
+    });
+  } catch (err) {
+    console.error("Blob cleanup error:", err);
+  }
+
+  return { data: null };
 }

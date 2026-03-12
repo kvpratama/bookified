@@ -2,6 +2,8 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
 
@@ -43,6 +45,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         // 3. Define permissions
         return {
           allowedContentTypes: ["application/pdf", "image/png", "image/jpeg"],
+          maximumSizeInBytes: MAX_FILE_SIZE,
           tokenPayload: JSON.stringify({
             userId: user.id,
           }),
@@ -62,9 +65,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json(jsonResponse);
   } catch (error) {
     console.error("Blob upload error handler:", error);
-    return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 400 }, // The client will also get this error
-    );
+    return NextResponse.json({ error: "Upload failed" }, { status: 400 });
   }
 }

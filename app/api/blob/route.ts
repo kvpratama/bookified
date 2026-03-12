@@ -21,20 +21,49 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const result = await get(url, {
-    access: "private",
-    token: process.env.BOOKIFIED_BLOB_READ_WRITE_TOKEN!,
-  });
-
-  if (result?.statusCode !== 200) {
-    return new NextResponse("Not found", { status: 404 });
+  // Validate that the blob belongs to the authenticated user
+  try {
+    const blobUrl = new URL(url);
+    const pathname = blobUrl.pathname.replace(/^\//, "");
+    if (!pathname.startsWith(`${user.id}/`)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid url" }, { status: 400 });
   }
 
-  return new NextResponse(result.stream, {
-    headers: {
-      "Content-Type": result.blob.contentType,
-      "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "private, no-cache",
-    },
-  });
+  const token = process.env.BOOKIFIED_BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    return NextResponse.json(
+      { data: null, error: { message: "Unauthorized" } },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const result = await get(url, {
+      access: "private",
+      token,
+    });
+
+    if (result?.statusCode !== 200) {
+      return NextResponse.json(
+        { data: null, error: { message: "Not found" } },
+        { status: 404 },
+      );
+    }
+
+    return new NextResponse(result.stream, {
+      headers: {
+        "Content-Type": result.blob.contentType,
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, no-cache",
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      { data: null, error: { message: "Blob retrieval failed" } },
+      { status: 502 },
+    );
+  }
 }

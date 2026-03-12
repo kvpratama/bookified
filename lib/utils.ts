@@ -30,5 +30,5 @@ export function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function formatDocumentName(name: string): string {
-  return name.replace(".pdf", "").replace(/_/g, " ");
+  return name.replace(/\.pdf$/i, "").replace(/_/g, " ");
 }
