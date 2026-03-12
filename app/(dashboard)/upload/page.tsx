@@ -132,34 +132,35 @@ export default function UploadPage() {
       const thumbName = file.name.replace(/\.pdf$/i, ".png");
       const thumbPath = `${docFolder}/${thumbName}`;
 
-      // 1. Prepare parallel uploads
-      type BlobResponse = { url: string };
-      const uploadPromises: [
-        Promise<BlobResponse>,
-        Promise<BlobResponse | undefined>,
-      ] = [
-        upload(pdfPath, file, {
-          access: "private",
-          handleUploadUrl: "/api/upload",
-        }),
-        extractedMetadata?.thumbnailDataUrl
-          ? (async () => {
-              const res = await fetch(extractedMetadata.thumbnailDataUrl!);
-              const blob = await res.blob();
-              const thumbFile = new File([blob], thumbName, {
-                type: "image/png",
-              });
-              return upload(thumbPath, thumbFile, {
-                access: "private",
-                handleUploadUrl: "/api/upload",
-              });
-            })()
-          : Promise.resolve(undefined),
-      ];
+      // 1. Start both uploads in parallel but capture the PDF result
+      //    independently so a thumbnail failure can't orphan the PDF blob.
+      const pdfUploadPromise = upload(pdfPath, file, {
+        access: "private",
+        handleUploadUrl: "/api/upload",
+      }).then((blob) => {
+        pdfBlobUrl = blob.url;
+        return blob;
+      });
+
+      const thumbUploadPromise = extractedMetadata?.thumbnailDataUrl
+        ? (async () => {
+            const res = await fetch(extractedMetadata.thumbnailDataUrl!);
+            const blob = await res.blob();
+            const thumbFile = new File([blob], thumbName, {
+              type: "image/png",
+            });
+            return upload(thumbPath, thumbFile, {
+              access: "private",
+              handleUploadUrl: "/api/upload",
+            });
+          })()
+        : Promise.resolve(undefined);
 
       // 2. Execute parallel uploads
-      const [pdfBlob, thumbBlob] = await Promise.all(uploadPromises);
-      pdfBlobUrl = pdfBlob.url;
+      const [, thumbBlob] = await Promise.all([
+        pdfUploadPromise,
+        thumbUploadPromise,
+      ]);
       thumbBlobUrl = thumbBlob?.url;
 
       // 3. Save to database via Server Action
@@ -167,7 +168,7 @@ export default function UploadPage() {
         name: data.name,
         author: data.author,
         pageCount: data.pageCount,
-        blobUrl: pdfBlobUrl,
+        blobUrl: pdfBlobUrl!,
         thumbnailUrl: thumbBlobUrl,
         size: file.size,
       });
