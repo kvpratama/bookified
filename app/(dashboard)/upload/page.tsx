@@ -13,9 +13,11 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn, formatBytes } from "@/lib/utils";
+import { upload } from "@vercel/blob/client";
 import { MetadataForm } from "./metadata-form";
 import { extractPdfMetadata } from "./pdf-utils";
-import { uploadDocumentAction } from "./actions";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
+import { saveDocumentAction } from "./actions";
 import type { ExtractedMetadata, UploadMetadata } from "./upload-schema";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -84,7 +86,6 @@ export default function UploadPage() {
       e.preventDefault();
       e.stopPropagation();
       setDragActive(false);
-
       if (e.dataTransfer.files && e.dataTransfer.files[0]) {
         validateAndSetFile(e.dataTransfer.files[0]);
       }
@@ -108,25 +109,70 @@ export default function UploadPage() {
 
     setUploadStatus("uploading");
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("metadata", JSON.stringify(data));
-    if (extractedMetadata?.thumbnailDataUrl) {
-      formData.append("thumbnail", extractedMetadata.thumbnailDataUrl);
-    }
-
     try {
-      const result = await uploadDocumentAction(formData);
+      // 0. Get user for path construction
+      const supabase = createSupabaseClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast.error("Unauthorized. Please log in.");
+        setUploadStatus("metadata");
+        return;
+      }
+
+      const docFolder = `${user.id}/${file.name.replace(/\.pdf$/i, "")}`;
+      const pdfPath = `${docFolder}/${file.name}`;
+      const thumbName = file.name.replace(/\.pdf$/i, ".png");
+      const thumbPath = `${docFolder}/${thumbName}`;
+
+      // 1. Prepare parallel uploads
+      type BlobResponse = { url: string };
+      const uploadPromises: [Promise<BlobResponse>, Promise<BlobResponse | undefined>] =
+        [
+          upload(pdfPath, file, {
+            access: "private",
+            handleUploadUrl: "/api/upload",
+          }),
+          extractedMetadata?.thumbnailDataUrl
+            ? (async () => {
+                const res = await fetch(extractedMetadata.thumbnailDataUrl!);
+                const blob = await res.blob();
+                const thumbFile = new File([blob], thumbName, {
+                  type: "image/png",
+                });
+                return upload(thumbPath, thumbFile, {
+                  access: "private",
+                  handleUploadUrl: "/api/upload",
+                });
+              })()
+            : Promise.resolve(undefined),
+        ];
+
+      // 2. Execute parallel uploads
+      const [pdfBlob, thumbBlob] = await Promise.all(uploadPromises);
+
+      // 3. Save to database via Server Action
+      const result = await saveDocumentAction({
+        name: data.name,
+        author: data.author,
+        pageCount: data.pageCount,
+        blobUrl: pdfBlob.url,
+        thumbnailUrl: thumbBlob?.url,
+        size: file.size,
+      });
 
       if (result.error) {
-        toast.error(result.error || "Failed to upload document");
+        toast.error(result.error || "Failed to save document");
         setUploadStatus("metadata");
         return;
       }
 
       setUploadStatus("success");
       toast.success("Document uploaded successfully!");
-    } catch {
+    } catch (err) {
+      console.error("Upload error:", err);
       toast.error("Failed to upload document. Please try again.");
       setUploadStatus("metadata");
     }
