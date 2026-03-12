@@ -5,6 +5,6 @@ coverage
 #
 pnpm-lock.yaml
 
-# src/lib/supabase/database.types.ts
+lib/supabase/database.types.ts
 
 *.md

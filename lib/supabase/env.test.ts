@@ -2,6 +2,10 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
 describe("supabase env utilities", () => {
   beforeEach(() => {
+    vi.unstubAllEnvs();
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
     vi.resetModules();
   });
 

@@ -73,6 +73,21 @@ Never use npm or yarn for this project.
 - **Testing Types:** Do not use "any" type in tests. Type mocks, utilities, and assertions explicitly; prefer generics and type-safe helpers over type casts.
 - **Use red/green TDD**: Write a failing test first, verify it fails, then implement.
 
+## Database
+
+- **Provider**: Supabase (PostgreSQL) via `@supabase/ssr`
+- **Client helpers**: `lib/supabase/client.ts` (browser), `lib/supabase/server.ts` (Server Components / Server Actions), `lib/supabase/middleware.ts` (Next.js middleware for session refresh & auth redirects)
+- **Types**: Auto-generated types live in `lib/supabase/database.types.ts`.
+- **Migrations**: Stored in `supabase/migrations/`.
+- **Environment variables** (see `.env.example`):
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- **Usage conventions**:
+  - In **Client Components**: `import { createClient } from "@/lib/supabase/client"`
+  - In **Server Components / Server Actions**: `import { createClient } from "@/lib/supabase/server"`
+  - Always type Supabase queries with the generated `Database` type
+  - Use RLS (Row Level Security) policies for access control; never bypass with the service-role key in client-facing code
+
 ## Component Guidelines
 
 - **Use shadcn/ui**: Always use shadcn/ui components when available. Do not create custom components that duplicate shadcn functionality

@@ -68,7 +68,7 @@ describe("LoginForm", () => {
       expect(screen.getByText(/check your email/i)).toBeInTheDocument();
       expect(screen.getByText("test@example.com")).toBeInTheDocument();
       expect(
-        screen.getByText(/click the link in your email to sign in/i),
+        screen.getByText(/open the email and click the link to continue/i),
       ).toBeInTheDocument();
     });
   });

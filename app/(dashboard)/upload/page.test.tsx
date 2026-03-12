@@ -1,14 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  act,
-  cleanup,
-} from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import type { ExtractedMetadata } from "./upload-schema";
 import UploadPage from "./page";
 
-// Mock next/navigation
 const mockPush = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -16,12 +10,9 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-// Mock the store
-const mockAddDocument = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/store", () => ({
-  useAppStore: (
-    selector: (state: { addDocument: typeof mockAddDocument }) => unknown,
-  ) => selector({ addDocument: mockAddDocument }),
+const mockExtractPdfMetadata = vi.hoisted(() => vi.fn());
+vi.mock("@/app/(dashboard)/upload/pdf-utils", () => ({
+  extractPdfMetadata: mockExtractPdfMetadata,
 }));
 
 function createFile(name: string, size: number, type: string): File {
@@ -32,12 +23,10 @@ function createFile(name: string, size: number, type: string): File {
 describe("UploadPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
     cleanup();
-    vi.useRealTimers();
   });
 
   it("renders the upload heading and drop zone", () => {
@@ -46,7 +35,7 @@ describe("UploadPage", () => {
       screen.getByRole("heading", { name: /upload document/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /select file/i }),
+      screen.getByRole("button", { name: /browse files/i }),
     ).toBeInTheDocument();
   });
 
@@ -76,7 +65,9 @@ describe("UploadPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows upload progress for valid PDF", () => {
+  it("shows processing state for valid PDF", () => {
+    mockExtractPdfMetadata.mockReturnValue(new Promise(() => {}));
+
     render(<UploadPage />);
     const input = document.querySelector(
       'input[type="file"]',
@@ -85,11 +76,19 @@ describe("UploadPage", () => {
     const file = createFile("valid.pdf", 1024, "application/pdf");
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(screen.getByText("Uploading...")).toBeInTheDocument();
-    expect(screen.getByText("valid.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Analyzing Document...")).toBeInTheDocument();
   });
 
-  it("completes upload and adds document to store", () => {
+  it("shows metadata form after extraction", async () => {
+    const metadata: ExtractedMetadata = {
+      name: "My Document",
+      author: "Test Author",
+      pageCount: 42,
+      thumbnailDataUrl: null,
+    };
+
+    mockExtractPdfMetadata.mockResolvedValueOnce(metadata);
+
     render(<UploadPage />);
     const input = document.querySelector(
       'input[type="file"]',
@@ -98,61 +97,54 @@ describe("UploadPage", () => {
     const file = createFile("book.pdf", 2048, "application/pdf");
     fireEvent.change(input, { target: { files: [file] } });
 
-    // Fast-forward through the simulated upload
-    act(() => {
-      vi.advanceTimersByTime(2100);
-    });
-
-    expect(mockAddDocument).toHaveBeenCalledTimes(1);
-    expect(mockAddDocument).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: "book.pdf",
-        size: 2048,
-      }),
-    );
+    expect(await screen.findByLabelText(/document name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/document name/i)).toHaveValue("My Document");
+    expect(screen.getByLabelText(/author/i)).toHaveValue("Test Author");
   });
 
-  it("shows dashboard button after successful upload", () => {
+  it("shows error when extraction fails", async () => {
+    mockExtractPdfMetadata.mockRejectedValueOnce(new Error("parse error"));
+
     render(<UploadPage />);
     const input = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement;
 
-    const file = createFile("book.pdf", 2048, "application/pdf");
+    const file = createFile("bad.pdf", 1024, "application/pdf");
     fireEvent.change(input, { target: { files: [file] } });
 
-    act(() => {
-      vi.advanceTimersByTime(2100);
-    });
-
-    const dashboardButton = screen.getByRole("button", {
-      name: /go to dashboard/i,
-    });
-    fireEvent.click(dashboardButton);
-    expect(mockPush).toHaveBeenCalledWith("/dashboard");
-  });
-
-  it("resets state when clicking 'Upload another file'", () => {
-    render(<UploadPage />);
-    const input = document.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
-
-    const file = createFile("book.pdf", 2048, "application/pdf");
-    fireEvent.change(input, { target: { files: [file] } });
-
-    act(() => {
-      vi.advanceTimersByTime(2100);
-    });
-
-    const uploadAnotherButton = screen.getByRole("button", {
-      name: /upload another file/i,
-    });
-    fireEvent.click(uploadAnotherButton);
-
-    // Should be back to idle state with the drop zone
     expect(
-      screen.getByRole("button", { name: /select file/i }),
+      await screen.findByText("Failed to process PDF. Please try again."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /browse files/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("resets state when clicking cancel on metadata form", async () => {
+    const metadata: ExtractedMetadata = {
+      name: "My Document",
+      author: null,
+      pageCount: 10,
+      thumbnailDataUrl: null,
+    };
+
+    mockExtractPdfMetadata.mockResolvedValueOnce(metadata);
+
+    render(<UploadPage />);
+    const input = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+
+    const file = createFile("book.pdf", 2048, "application/pdf");
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await screen.findByLabelText(/document name/i);
+
+    fireEvent.click(screen.getByRole("button", { name: /back to upload/i }));
+
+    expect(
+      screen.getByRole("button", { name: /browse files/i }),
     ).toBeInTheDocument();
   });
 });
