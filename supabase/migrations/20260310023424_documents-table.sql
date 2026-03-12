@@ -11,7 +11,7 @@ create table documents (
   page_count integer,
   upload_date timestamptz not null default now(),
   last_accessed timestamptz,
-  current_page integer not null default 1 check (current_page >= 1),
+  current_page integer not null default 0 check (current_page >= 0),
   unique (user_id, name)
 );
 
