@@ -73,7 +73,7 @@ export default async function DashboardPage() {
           {/* Section Heading */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
-              Recently Accessed
+              Your Recent Books
             </h2>
             <Button
               asChild
