@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import LibraryPage, { metadata } from "./page";
 
 // Mock next/navigation
@@ -38,7 +38,7 @@ vi.mock("next/image", () => ({
 const mockDocuments = [
   {
     id: "test-1",
-    name: "Test Book 1.pdf",
+    name: "OnlyBook1.pdf",
     size: 1000,
     upload_date: "2026-03-05T10:00:00Z",
     author: "Author 1",
@@ -79,6 +79,12 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn().mockImplementation(async () => ({
     from: mockFrom,
   })),
+}));
+
+vi.mock("../_components/BookCard", () => ({
+  BookCard: ({ doc }: { doc: { name: string } }) => (
+    <div data-testid="book-card">{doc.name}</div>
+  ),
 }));
 
 describe("LibraryPage", () => {
@@ -129,6 +135,10 @@ describe("LibraryPage", () => {
     });
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   it("has the correct metadata", () => {
     expect(metadata.title).toBe("Your Library | Bookified");
   });
@@ -153,20 +163,16 @@ describe("LibraryPage", () => {
   it("renders the book cards", async () => {
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
-    expect(screen.getAllByText(/Test Book 1/i)[0]).toBeInTheDocument();
-    expect(screen.getAllByText(/Test Book 2/i)[0]).toBeInTheDocument();
-    expect(screen.getAllByText(/Author 1/i)[0]).toBeInTheDocument();
-    expect(screen.getAllByText(/Author 2/i)[0]).toBeInTheDocument();
+    expect(screen.getAllByTestId("book-card").length).toBe(2);
+    expect(screen.getByText("OnlyBook1.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Test Book 2.pdf")).toBeInTheDocument();
   });
 
-  it("shows search input and filter button", async () => {
+  it("shows search input", async () => {
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
     expect(
       screen.getAllByPlaceholderText(/search your library/i)[0],
-    ).toBeInTheDocument();
-    expect(
-      screen.getAllByRole("button", { name: /filter/i })[0],
     ).toBeInTheDocument();
   });
 
@@ -175,16 +181,18 @@ describe("LibraryPage", () => {
     mockCount = 1;
 
     const Page = await LibraryPage({
-      searchParams: Promise.resolve({ q: "Test Book 1" }),
+      searchParams: Promise.resolve({ q: "OnlyBook1" }),
     });
     render(Page);
 
-    expect(mockIlike).toHaveBeenCalledWith("name", "%Test Book 1%");
+    expect(mockIlike).toHaveBeenCalledWith("name", "%OnlyBook1%");
     expect(
-      screen.getByText(/1 book matching "Test Book 1"/i),
+      screen.getByText(/1 book matching "OnlyBook1"/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Test Book 1/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Test Book 2/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("book-card")[0]).toHaveTextContent(
+      "OnlyBook1.pdf",
+    );
+    expect(screen.queryAllByText("Test Book 2.pdf").length).toBe(0);
   });
 
   it("shows empty state when no books found", async () => {

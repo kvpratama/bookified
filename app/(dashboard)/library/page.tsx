@@ -1,15 +1,15 @@
 import Link from "next/link";
 import {
-  Filter,
-  LayoutGrid,
-  List,
+  // Filter,
+  // LayoutGrid,
+  // List,
   Upload,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-import { BookCard } from "@/components/dashboard/BookCard";
+import { BookCard } from "../_components/BookCard";
 import { SearchInput } from "./search-input";
 import { Metadata } from "next";
 

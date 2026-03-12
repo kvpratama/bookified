@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import DashboardPage from "./page";
 
 // Mock next/navigation (used by ContinueReading)
@@ -64,6 +64,16 @@ vi.mock("@/lib/supabase/server", () => ({
   })),
 }));
 
+vi.mock("./_components/ContinueReading", () => ({
+  ContinueReading: () => <div data-testid="continue-reading" />,
+}));
+
+vi.mock("../_components/BookCard", () => ({
+  BookCard: ({ doc }: { doc: { name: string } }) => (
+    <div data-testid="book-card">{doc.name}</div>
+  ),
+}));
+
 describe("DashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -83,6 +93,10 @@ describe("DashboardPage", () => {
     mockOrder.mockReturnValue(mockBuilder);
     mockSelect.mockReturnValue({ order: mockOrder });
     mockFrom.mockReturnValue({ select: mockSelect });
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('renders the "Sanctuary" heading', async () => {
@@ -113,8 +127,8 @@ describe("DashboardPage", () => {
   it("renders documents in the grid", async () => {
     const Page = await DashboardPage();
     render(Page);
-    expect(screen.getAllByText("Test Book").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Test Author").length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("book-card").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Test Book.pdf").length).toBeGreaterThan(0);
   });
 
   it("shows empty state when no documents exist", async () => {

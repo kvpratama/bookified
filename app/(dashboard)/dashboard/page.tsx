@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ContinueReading } from "@/components/dashboard/ContinueReading";
 import { createClient } from "@/lib/supabase/server";
-import { BookCard } from "@/components/dashboard/BookCard";
+import { ContinueReading } from "./_components/ContinueReading";
+import { BookCard } from "../_components/BookCard";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard | Sanctuary",
+  description: "Your reading sanctuary overview.",
+};
 
 export default async function DashboardPage() {
   const supabase = await createClient();
