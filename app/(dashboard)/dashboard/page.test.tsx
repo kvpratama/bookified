@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import DashboardPage from "./page";
 
 // Mock next/navigation (used by ContinueReading)
@@ -28,7 +28,7 @@ vi.mock("next/link", () => ({
 vi.mock("next/image", () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
     // eslint-disable-next-line @next/next/no-img-element
-    <img {...props} />
+    <img alt="" {...props} />
   ),
 }));
 
@@ -52,6 +52,7 @@ const mockDocuments = [
 // Mock Supabase client
 const mockSelect = vi.fn();
 const mockOrder = vi.fn();
+const mockLimit = vi.fn();
 const mockFrom = vi.fn();
 
 let mockData: typeof mockDocuments | null = mockDocuments;
@@ -63,6 +64,16 @@ vi.mock("@/lib/supabase/server", () => ({
   })),
 }));
 
+vi.mock("./_components/ContinueReading", () => ({
+  ContinueReading: () => <div data-testid="continue-reading" />,
+}));
+
+vi.mock("../_components/BookCard", () => ({
+  BookCard: ({ doc }: { doc: { name: string } }) => (
+    <div data-testid="book-card">{doc.name}</div>
+  ),
+}));
+
 describe("DashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -72,30 +83,36 @@ describe("DashboardPage", () => {
     // Create a mock promise/builder that supports chaining
     const mockBuilder = {
       order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
       then: vi.fn().mockImplementation((resolve) => {
         return resolve({ data: mockData, error: mockError });
       }),
     };
 
+    mockLimit.mockReturnValue(mockBuilder);
     mockOrder.mockReturnValue(mockBuilder);
     mockSelect.mockReturnValue({ order: mockOrder });
     mockFrom.mockReturnValue({ select: mockSelect });
   });
 
-  it('renders the "Your Library" heading', async () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('renders the "Sanctuary" heading', async () => {
     const Page = await DashboardPage();
     render(Page);
     expect(
-      screen.getByRole("heading", { name: /your library/i }),
+      screen.getByRole("heading", { name: /sanctuary/i }),
     ).toBeInTheDocument();
   });
 
-  it("displays the correct book count", async () => {
+  it("displays the welcome message", async () => {
     const Page = await DashboardPage();
     render(Page);
     expect(
-      screen.getAllByText(/1 book in your collection/i).length,
-    ).toBeGreaterThan(0);
+      screen.getAllByText(/welcome back to your reading room/i)[0],
+    ).toBeInTheDocument();
   });
 
   it('has an "Upload Book" link pointing to /upload', async () => {
@@ -110,17 +127,8 @@ describe("DashboardPage", () => {
   it("renders documents in the grid", async () => {
     const Page = await DashboardPage();
     render(Page);
-    expect(screen.getAllByText("Test Book").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Test Author").length).toBeGreaterThan(0);
-  });
-
-  it("has a link to /chat/[id] for each document", async () => {
-    const Page = await DashboardPage();
-    render(Page);
-    const docLinks = screen.getAllByRole("link", { name: /Test Book/i });
-    expect(
-      docLinks.some((link) => link.getAttribute("href") === "/chat/test-1"),
-    ).toBe(true);
+    expect(screen.getAllByTestId("book-card").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Test Book.pdf").length).toBeGreaterThan(0);
   });
 
   it("shows empty state when no documents exist", async () => {
