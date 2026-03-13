@@ -39,7 +39,10 @@ export function BookCard({ doc }: BookCardProps) {
           <div
             className="absolute bottom-0 left-0 h-1 bg-accent-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300"
             style={{
-              width: `${Math.round((doc.current_page / doc.page_count) * 100)}%`,
+              width: `${Math.min(
+                Math.round((doc.current_page / doc.page_count) * 100),
+                100,
+              )}%`,
             }}
           />
         )}
