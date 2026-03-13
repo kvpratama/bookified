@@ -30,7 +30,7 @@ export default async function ChatPage({ params }: PageProps) {
   const supabase = await createClient();
   const { data: doc, error } = await supabase
     .from("documents")
-    .select("id, name, author, page_count, size, blob_url")
+    .select("id, name, author, page_count, size, blob_url, current_page")
     .eq("id", id)
     .single();
 
@@ -45,6 +45,7 @@ export default async function ChatPage({ params }: PageProps) {
     page_count: doc.page_count,
     size: doc.size,
     blob_url: doc.blob_url,
+    current_page: doc.current_page || 1,
   };
 
   return <ChatPageClient document={document} />;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getBlobUrl } from "@/lib/utils";
+import { useDebouncedCallback } from "@/lib/hooks/use-debounce-callback";
+import { updateDocumentProgress } from "./actions";
 import type { ChatDocument } from "./types";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -28,7 +30,7 @@ const MAX_SCALE = 3.0;
 
 export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   const [numPages, setNumPages] = useState<number>(0);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(doc.current_page || 1);
   const [scale, setScale] = useState(1.0);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,12 +46,25 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
     setIsLoading(false);
   }, []);
 
+  const debouncedUpdateProgress = useDebouncedCallback<[number]>(
+    (page: number) => {
+      updateDocumentProgress(doc.id, page, new Date().toISOString());
+    },
+    1000,
+  );
+
   const goToPage = useCallback(
     (page: number) => {
-      setCurrentPage(Math.max(1, Math.min(page, numPages)));
+      const newPage = Math.max(1, Math.min(page, numPages));
+      setCurrentPage(newPage);
+      debouncedUpdateProgress(newPage);
     },
-    [numPages],
+    [numPages, debouncedUpdateProgress],
   );
+
+  useEffect(() => {
+    updateDocumentProgress(doc.id, currentPage, new Date().toISOString());
+  }, [doc.id, currentPage]);
 
   const zoomIn = useCallback(() => {
     setScale((s) => Math.min(s + ZOOM_STEP, MAX_SCALE));

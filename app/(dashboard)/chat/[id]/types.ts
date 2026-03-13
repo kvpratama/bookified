@@ -6,4 +6,5 @@ export type ChatDocument = {
   page_count: number | null;
   size: number;
   blob_url: string;
+  current_page: number;
 };
