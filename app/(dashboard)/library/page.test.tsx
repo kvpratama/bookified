@@ -87,6 +87,16 @@ vi.mock("../_components/BookCard", () => ({
   ),
 }));
 
+vi.mock("./search-input", () => ({
+  SearchInput: ({ defaultValue }: { defaultValue?: string }) => (
+    <input
+      placeholder="Search your library..."
+      defaultValue={defaultValue}
+      data-testid="search-input"
+    />
+  ),
+}));
+
 describe("LibraryPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -168,11 +178,38 @@ describe("LibraryPage", () => {
     expect(screen.getByText("Test Book 2.pdf")).toBeInTheDocument();
   });
 
-  it("shows search input", async () => {
+  it("shows search input when books are present", async () => {
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
     expect(
       screen.getAllByPlaceholderText(/search your library/i)[0],
+    ).toBeInTheDocument();
+  });
+
+  it("shows search input when no books found", async () => {
+    mockData = [];
+    mockCount = 0;
+
+    const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
+    render(Page);
+    expect(
+      screen.getAllByPlaceholderText(/search your library/i)[0],
+    ).toBeInTheDocument();
+  });
+
+  it("shows search input when search returns no results", async () => {
+    mockData = [];
+    mockCount = 0;
+
+    const Page = await LibraryPage({
+      searchParams: Promise.resolve({ q: "nonexistent" }),
+    });
+    render(Page);
+    expect(
+      screen.getAllByPlaceholderText(/search your library/i)[0],
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/no books found matching "nonexistent"/i),
     ).toBeInTheDocument();
   });
 
@@ -203,6 +240,9 @@ describe("LibraryPage", () => {
     render(Page);
     expect(
       screen.getByText(/no books found in your library/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByPlaceholderText(/search your library/i)[0],
     ).toBeInTheDocument();
   });
 

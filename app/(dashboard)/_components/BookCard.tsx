@@ -3,7 +3,7 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { Clock } from "lucide-react";
 import { getBlobUrl, formatDocumentName } from "@/lib/utils";
-import { Database } from "@/lib/supabase/database.types";
+import type { Database } from "@/lib/supabase/database.types";
 
 type Document = Database["public"]["Tables"]["documents"]["Row"];
 

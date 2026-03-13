@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BookCard } from "../_components/BookCard";
 import { SearchInput } from "./search-input";
 import { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Your Library | Bookified",
@@ -74,6 +75,17 @@ export default async function LibraryPage({
         </Button>
       </div>
 
+      {/* Action Bar */}
+      <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
+        <Suspense
+          fallback={
+            <div className="relative flex-1 w-full h-[58px] bg-muted/50 rounded-md animate-pulse" />
+          }
+        >
+          <SearchInput defaultValue={query} />
+        </Suspense>
+      </div>
+
       {!documents || documents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <p className="text-muted-foreground mt-1 mb-6">
@@ -98,31 +110,6 @@ export default async function LibraryPage({
         </div>
       ) : (
         <>
-          {/* Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
-            <SearchInput defaultValue={query} />
-
-            {/* <div className="flex items-center gap-3 w-full sm:w-auto">
-              <Button variant="outline">
-                <Filter className="w-4 h-4" />
-                Filter
-              </Button>
-
-              <div className="flex items-center border border-border rounded-md p-0.5 bg-transparent">
-                <Button variant="ghost" size="icon-sm" className="bg-muted">
-                  <LayoutGrid className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-foreground/40 hover:text-foreground/70"
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </div>
-            </div> */}
-          </div>
-
           {/* Section Heading */}
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
@@ -151,7 +138,12 @@ export default async function LibraryPage({
                 className={page <= 1 ? "pointer-events-none opacity-50" : ""}
               >
                 <Link
-                  href={`/library?page=${page - 1}${query ? `&q=${query}` : ""}`}
+                  href={`/library?${(() => {
+                    const params = new URLSearchParams();
+                    params.set("page", String(page - 1));
+                    if (query) params.set("q", query);
+                    return params.toString();
+                  })()}`}
                 >
                   <ChevronLeft className="w-4 h-4" />
                   <span className="sr-only">Previous Page</span>
@@ -172,7 +164,12 @@ export default async function LibraryPage({
                 }
               >
                 <Link
-                  href={`/library?page=${page + 1}${query ? `&q=${query}` : ""}`}
+                  href={`/library?${(() => {
+                    const params = new URLSearchParams();
+                    params.set("page", String(page + 1));
+                    if (query) params.set("q", query);
+                    return params.toString();
+                  })()}`}
                 >
                   <ChevronRight className="w-4 h-4" />
                   <span className="sr-only">Next Page</span>
