@@ -13,14 +13,18 @@ export function SearchInput({ defaultValue = "" }: { defaultValue?: string }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [value, setValue] = useState(defaultValue);
+  const [prevDefault, setPrevDefault] = useState(defaultValue);
   const debouncedValue = useDebounce(value, 300);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Keep internal state in sync with external defaultValue (e.g. from "Clear filters")
-  useEffect(() => {
-    setValue(defaultValue);
-  }, [defaultValue]);
+  // Reset input when query is cleared externally (e.g. "Clear filters")
+  if (defaultValue !== prevDefault) {
+    setPrevDefault(defaultValue);
+    if (!defaultValue) {
+      setValue("");
+    }
+  }
 
   // Keyboard shortcut to focus search
   useEffect(() => {

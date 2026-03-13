@@ -86,12 +86,22 @@ describe("SearchInput", () => {
     expect(input).toHaveFocus();
   });
 
-  it("syncs with external defaultValue changes", () => {
-    const { rerender } = render(<SearchInput defaultValue="initial" />);
+  it("resets value when defaultValue is cleared externally", () => {
+    const { rerender } = render(<SearchInput defaultValue="some query" />);
     const input = screen.getByPlaceholderText(/Search your library/i);
-    expect(input).toHaveValue("initial");
+    expect(input).toHaveValue("some query");
 
-    rerender(<SearchInput defaultValue="updated" />);
-    expect(input).toHaveValue("updated");
+    rerender(<SearchInput defaultValue="" />);
+    expect(input).toHaveValue("");
+  });
+
+  it("preserves typed value when server re-renders with updated query", () => {
+    const { rerender } = render(<SearchInput defaultValue="hello" />);
+    const input = screen.getByPlaceholderText(/Search your library/i);
+
+    fireEvent.change(input, { target: { value: "hello world" } });
+
+    rerender(<SearchInput defaultValue="hello" />);
+    expect(input).toHaveValue("hello world");
   });
 });
