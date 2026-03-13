@@ -263,6 +263,20 @@ describe("LibraryPage", () => {
     expect(screen.getByText(/1 book matching "Author 2"/i)).toBeInTheDocument();
   });
 
+  it("escapes SQL wildcards in search query", async () => {
+    mockData = [];
+    mockCount = 0;
+
+    const Page = await LibraryPage({
+      searchParams: Promise.resolve({ q: "50%_done" }),
+    });
+    render(Page);
+
+    expect(mockOr).toHaveBeenCalledWith(
+      "name.ilike.%50\\%\\_done%,author.ilike.%50\\%\\_done%",
+    );
+  });
+
   it("shows empty state when no books found", async () => {
     mockData = [];
     mockCount = 0;
@@ -275,6 +289,17 @@ describe("LibraryPage", () => {
     expect(
       screen.getAllByPlaceholderText(/search by title or author/i)[0],
     ).toBeInTheDocument();
+  });
+
+  it("defaults to page 1 when page param is non-numeric", async () => {
+    const Page = await LibraryPage({
+      searchParams: Promise.resolve({ page: "abc" }),
+    });
+    render(Page);
+    expect(
+      screen.getAllByText(/2 books in your collection/i)[0],
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/showing 1-2 of 2/i)[0]).toBeInTheDocument();
   });
 
   it("shows pagination controls when multiple pages exist", async () => {

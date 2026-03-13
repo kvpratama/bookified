@@ -25,7 +25,7 @@ export default async function LibraryPage({
   searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   const { page: pageParam, q: query } = await searchParams;
-  const page = Math.max(1, parseInt(pageParam || "1", 10));
+  const page = Math.max(1, parseInt(pageParam || "1", 10) || 1);
   const limit = 8;
   const from = (page - 1) * limit;
   const to = from + limit - 1;
@@ -40,7 +40,8 @@ export default async function LibraryPage({
     .range(from, to);
 
   if (query) {
-    dbQuery = dbQuery.or(`name.ilike.%${query}%,author.ilike.%${query}%`);
+    const escaped = query.replace(/[%_]/g, "\\$&");
+    dbQuery = dbQuery.or(`name.ilike.%${escaped}%,author.ilike.%${escaped}%`);
   }
 
   const { data: documents, error, count } = await dbQuery;
