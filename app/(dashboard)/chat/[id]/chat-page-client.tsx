@@ -35,11 +35,11 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.back()}
           className="shrink-0 -ml-2 h-8 w-8 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="sr-only">Back to dashboard</span>
+          <span className="sr-only">Back</span>
         </Button>
         <div className="min-w-0 flex-1 flex items-center gap-2">
           <div className="p-1.5 bg-muted rounded shrink-0">
