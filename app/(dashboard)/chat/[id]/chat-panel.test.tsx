@@ -82,7 +82,7 @@ describe("ChatPanel", () => {
 
   // --- Expanded state ---
   describe("expanded state", () => {
-    it("renders the 'Chat' header text", () => {
+    it("renders the 'Ask Document' header text", () => {
       render(
         <ChatPanel
           document={mockDocument}
@@ -90,7 +90,7 @@ describe("ChatPanel", () => {
           onToggle={mockOnToggle}
         />,
       );
-      expect(screen.getByText("Chat")).toBeInTheDocument();
+      expect(screen.getByText("Ask Document")).toBeInTheDocument();
     });
 
     it("renders 'Close chat' button and clicking it calls onToggle", () => {
@@ -107,7 +107,7 @@ describe("ChatPanel", () => {
       expect(mockOnToggle).toHaveBeenCalledTimes(1);
     });
 
-    it("shows empty state 'Chat with Document' when no messages", () => {
+    it("shows empty state 'Ask the Document' when no messages", () => {
       render(
         <ChatPanel
           document={mockDocument}
@@ -115,7 +115,7 @@ describe("ChatPanel", () => {
           onToggle={mockOnToggle}
         />,
       );
-      expect(screen.getByText("Chat with Document")).toBeInTheDocument();
+      expect(screen.getByText("Ask the Document")).toBeInTheDocument();
     });
 
     it("renders input with correct placeholder", () => {

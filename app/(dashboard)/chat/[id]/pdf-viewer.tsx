@@ -77,82 +77,21 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   const fileUrl = getBlobUrl(doc.blob_url);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30 shrink-0">
-        {/* Page navigation */}
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage <= 1}
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span className="sr-only">Previous page</span>
-          </Button>
-          <span className="text-xs text-muted-foreground font-medium tabular-nums min-w-20 text-center select-none">
-            {isLoading ? (
-              "Loading…"
-            ) : (
-              <>
-                Page {currentPage} of {numPages}
-              </>
-            )}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage >= numPages}
-          >
-            <ChevronRight className="w-4 h-4" />
-            <span className="sr-only">Next page</span>
-          </Button>
-        </div>
-
-        {/* Zoom controls */}
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={zoomOut}
-            disabled={scale <= MIN_SCALE}
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-            <span className="sr-only">Zoom out</span>
-          </Button>
-          <span className="text-xs text-muted-foreground font-medium tabular-nums min-w-12 text-center select-none">
-            {Math.round(scale * 100)}%
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={zoomIn}
-            disabled={scale >= MAX_SCALE}
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-            <span className="sr-only">Zoom in</span>
-          </Button>
-        </div>
-      </div>
-
+    <div className="relative flex flex-col h-full bg-[#E5E5E5]/40 dark:bg-black/20">
       {/* PDF content */}
       <ScrollArea className="flex-1">
         <div
           className={cn(
-            "flex flex-col items-center py-6 px-4 gap-4 min-h-full",
+            "flex flex-col items-center justify-center py-12 px-6 min-h-full",
             isLoading && "items-center justify-center",
           )}
         >
           {isLoading && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
-              <p className="text-sm text-muted-foreground">Loading document…</p>
+            <div className="flex flex-col items-center justify-center py-20 gap-4 animate-in fade-in duration-500">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <p className="text-sm font-medium text-muted-foreground tracking-wide">
+                Loading Document…
+              </p>
             </div>
           )}
 
@@ -162,7 +101,7 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
             onLoadError={onDocumentLoadError}
             loading={null}
             error={
-              <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
                 <p className="text-sm text-destructive font-medium">
                   Failed to load PDF
                 </p>
@@ -175,9 +114,9 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
             <Page
               pageNumber={currentPage}
               scale={scale}
-              className="shadow-lg rounded border border-border/50 overflow-hidden [&_canvas]:w-full! [&_canvas]:h-auto!"
+              className="bg-white shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.6)] ring-1 ring-black/5 dark:ring-white/10 rounded-sm overflow-hidden [&_canvas]:w-full! [&_canvas]:h-auto! transition-transform duration-200"
               loading={
-                <div className="flex items-center justify-center py-20">
+                <div className="flex items-center justify-center py-32 min-w-[600px] bg-white ring-1 ring-black/5 rounded-sm">
                   <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
                 </div>
               }
@@ -185,6 +124,67 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
           </Document>
         </div>
       </ScrollArea>
+
+      {/* Floating Toolbar */}
+      {!isLoading && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-6 px-5 py-2.5 bg-background/95 backdrop-blur-xl border border-border/50 shadow-2xl rounded-full animate-in slide-in-from-bottom-5 fade-in duration-500">
+          {/* Page navigation */}
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="sr-only">Previous page</span>
+            </Button>
+            <span className="text-xs font-semibold tabular-nums min-w-[80px] text-center select-none text-foreground/80 tracking-wide">
+              {currentPage} / {numPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage >= numPages}
+            >
+              <ChevronRight className="w-4 h-4" />
+              <span className="sr-only">Next page</span>
+            </Button>
+          </div>
+
+          <div className="w-px h-4 bg-border" />
+
+          {/* Zoom controls */}
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              onClick={zoomOut}
+              disabled={scale <= MIN_SCALE}
+            >
+              <ZoomOut className="w-4 h-4" />
+              <span className="sr-only">Zoom out</span>
+            </Button>
+            <span className="text-xs font-semibold tabular-nums min-w-[50px] text-center select-none text-foreground/80 tracking-wide">
+              {Math.round(scale * 100)}%
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              onClick={zoomIn}
+              disabled={scale >= MAX_SCALE}
+            >
+              <ZoomIn className="w-4 h-4" />
+              <span className="sr-only">Zoom in</span>
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

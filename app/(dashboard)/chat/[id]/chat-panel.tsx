@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { Send, Sparkles, User, MessageSquare, X } from "lucide-react";
+import { Send, Sparkles, MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAppStore } from "@/lib/store";
 import type { ChatMessage } from "@/lib/store";
 import type { ChatDocument } from "./types";
@@ -28,13 +27,13 @@ export function ChatPanel({
   const { chats, addMessage } = useAppStore();
   const currentChat = useMemo(() => chats[doc.id] || [], [chats, doc.id]);
 
-  // Scroll to bottom on new message
+  // Scroll to bottom on new message or when opening the panel
   useEffect(() => {
-    if (scrollViewportRef.current) {
+    if (!collapsed && scrollViewportRef.current) {
       scrollViewportRef.current.scrollTop =
         scrollViewportRef.current.scrollHeight;
     }
-  }, [currentChat, isTyping]);
+  }, [currentChat, isTyping, collapsed]);
 
   const handleSendMessage = useCallback(() => {
     if (!inputValue.trim() || isTyping) return;
@@ -102,28 +101,33 @@ export function ChatPanel({
       <Button
         onClick={onToggle}
         size="icon"
-        className="fixed right-4 bottom-4 z-50 h-12 w-12 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
+        className="fixed right-6 bottom-6 z-50 h-14 w-14 rounded-full shadow-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-105"
         aria-label="Open chat"
       >
-        <MessageSquare className="w-5 h-5" />
+        <MessageSquare className="w-6 h-6" />
       </Button>
     );
   }
 
   return (
-    <div className="flex flex-col h-full border-l border-border bg-background">
+    <div
+      className={cn(
+        "flex flex-col h-full bg-background/50",
+        collapsed && "hidden",
+      )}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-muted/30 shrink-0">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-xl shrink-0 z-10 shadow-[0_1px_3px_0_rgb(0,0,0,0.02)]">
         <div className="flex items-center gap-2 min-w-0">
-          <Sparkles className="w-4 h-4 text-accent-foreground shrink-0" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground truncate">
-            Chat
+          <Sparkles className="w-4 h-4 text-primary shrink-0 opacity-80" />
+          <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground/80 truncate">
+            Ask Document
           </span>
         </div>
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground shrink-0 transition-colors"
           onClick={onToggle}
           aria-label="Close chat"
         >
@@ -132,19 +136,19 @@ export function ChatPanel({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-3" viewportRef={scrollViewportRef}>
-        <div className="space-y-4 flex flex-col pb-2">
+      <ScrollArea className="flex-1 px-4 py-6" viewportRef={scrollViewportRef}>
+        <div className="space-y-8 flex flex-col pb-4">
           {currentChat.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center mx-auto max-w-[200px]">
-              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mb-3">
-                <Sparkles className="w-5 h-5 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-20 text-center mx-auto max-w-[260px] animate-in fade-in duration-700">
+              <div className="w-14 h-14 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center mb-6 shadow-sm">
+                <Sparkles className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-sm font-serif text-foreground">
-                Chat with Document
+              <h3 className="text-xl font-serif text-foreground mb-3 tracking-tight">
+                Ask the Document
               </h3>
-              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                Ask questions to summarize or find key insights from this
-                volume.
+              <p className="text-[13px] text-muted-foreground leading-relaxed">
+                Extract key insights, summarize chapters, or find specific
+                references within this volume.
               </p>
             </div>
           ) : (
@@ -152,41 +156,42 @@ export function ChatPanel({
               <div
                 key={msg.id}
                 className={cn(
-                  "flex gap-2 max-w-[95%]",
+                  "flex gap-4 max-w-[92%] animate-in fade-in slide-in-from-bottom-2 duration-500",
                   msg.role === "user"
                     ? "self-end flex-row-reverse"
                     : "self-start",
                 )}
               >
-                <Avatar className="w-6 h-6 shrink-0 mt-0.5 border border-border">
-                  {msg.role === "user" ? (
-                    <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">
-                      <User className="w-3 h-3" />
-                    </AvatarFallback>
-                  ) : (
-                    <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
-                      <Sparkles className="w-3 h-3" />
-                    </AvatarFallback>
-                  )}
-                </Avatar>
+                {msg.role !== "user" && (
+                  <div className="mt-1 shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                )}
 
                 <div
                   className={cn(
-                    "flex flex-col gap-0.5 min-w-0",
+                    "flex flex-col gap-1.5 min-w-0",
                     msg.role === "user" ? "items-end" : "items-start",
                   )}
                 >
                   <div
                     className={cn(
-                      "px-3 py-2 rounded-2xl text-[13px] leading-relaxed [word-break:break-word]",
+                      "text-[14px]",
                       msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-tr-sm"
-                        : "bg-muted text-foreground rounded-tl-sm border border-border/50",
+                        ? "bg-foreground text-background px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm font-sans font-medium"
+                        : "text-foreground relative pl-5 py-1 border-l-[3px] border-primary/20 font-serif text-[15.5px] leading-relaxed",
                     )}
                   >
                     {msg.content}
                   </div>
-                  <span className="text-[9px] text-muted-foreground px-1 font-medium select-none">
+                  <span
+                    className={cn(
+                      "text-[10px] text-muted-foreground/60 font-medium select-none tracking-wide",
+                      msg.role !== "user" && "ml-5",
+                    )}
+                  >
                     {formatTime(msg.timestamp)}
                   </span>
                 </div>
@@ -195,16 +200,16 @@ export function ChatPanel({
           )}
 
           {isTyping && (
-            <div className="flex gap-2 max-w-[95%] self-start">
-              <Avatar className="w-6 h-6 shrink-0 mt-0.5 border border-border">
-                <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
-                  <Sparkles className="w-3 h-3" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="bg-muted rounded-2xl rounded-tl-sm px-3 py-2.5 flex gap-1 items-center h-[34px]">
-                <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]" />
-                <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]" />
-                <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" />
+            <div className="flex gap-4 max-w-[92%] self-start animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="mt-1 shrink-0">
+                <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
+                  <Sparkles className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="pl-5 py-2 border-l-[3px] border-primary/20 flex gap-1.5 items-center h-[36px]">
+                <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
               </div>
             </div>
           )}
@@ -212,8 +217,8 @@ export function ChatPanel({
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-2.5 bg-background border-t border-border shrink-0">
-        <div className="relative flex items-end gap-1.5">
+      <div className="p-4 bg-background/95 backdrop-blur-xl border-t border-border/40 shrink-0 relative z-20 shadow-[0_-1px_3px_0_rgb(0,0,0,0.02)]">
+        <div className="relative flex items-center shadow-sm rounded-full bg-muted/30 border border-border/50 transition-all focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/30 focus-within:bg-background focus-within:shadow-md">
           <Input
             ref={inputRef}
             value={inputValue}
@@ -221,20 +226,20 @@ export function ChatPanel({
             onKeyDown={handleKeyDown}
             placeholder="Ask about this document…"
             aria-label="Chat message input"
-            className="pr-10 py-5 text-[13px] bg-muted border-border focus-visible:ring-1 focus-visible:ring-ring"
+            className="pr-14 pl-5 py-6 text-[14px] bg-transparent border-none focus-visible:ring-0 shadow-none font-sans"
           />
           <Button
             size="icon"
-            className="absolute right-1 top-1 h-auto py-1.5 px-1.5 bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="absolute right-1.5 w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-sm disabled:opacity-50"
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isTyping}
           >
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-4 h-4 ml-0.5" />
             <span className="sr-only">Send message</span>
           </Button>
         </div>
-        <p className="text-center text-[9px] text-muted-foreground mt-2 font-medium select-none">
-          AI can make mistakes. Consider verifying important information.
+        <p className="text-center text-[10px] text-muted-foreground/60 mt-3 font-medium select-none tracking-wide uppercase">
+          AI can make mistakes. Verify important info.
         </p>
       </div>
     </div>
