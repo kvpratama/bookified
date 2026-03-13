@@ -41,14 +41,14 @@ describe("SearchInput", () => {
 
   it("renders with default value", () => {
     render(<SearchInput defaultValue="test query" />);
-    expect(screen.getByPlaceholderText(/Search your library/i)).toHaveValue(
-      "test query",
-    );
+    expect(
+      screen.getByPlaceholderText(/Search by title or author/i),
+    ).toHaveValue("test query");
   });
 
   it("updates local state immediately but debounces router.push", async () => {
     render(<SearchInput />);
-    const input = screen.getByPlaceholderText(/Search your library/i);
+    const input = screen.getByPlaceholderText(/Search by title or author/i);
 
     fireEvent.change(input, { target: { value: "new search" } });
     expect(input).toHaveValue("new search");
@@ -69,7 +69,7 @@ describe("SearchInput", () => {
   it("clears input and focuses when clear button is clicked", () => {
     render(<SearchInput defaultValue="something" />);
     const clearButton = screen.getByRole("button", { name: /clear search/i });
-    const input = screen.getByPlaceholderText(/Search your library/i);
+    const input = screen.getByPlaceholderText(/Search by title or author/i);
 
     fireEvent.click(clearButton);
     expect(input).toHaveValue("");
@@ -78,7 +78,7 @@ describe("SearchInput", () => {
 
   it("focuses input when '/' key is pressed", () => {
     render(<SearchInput />);
-    const input = screen.getByPlaceholderText(/Search your library/i);
+    const input = screen.getByPlaceholderText(/Search by title or author/i);
 
     expect(input).not.toHaveFocus();
 
@@ -88,7 +88,7 @@ describe("SearchInput", () => {
 
   it("resets value when defaultValue is cleared externally", () => {
     const { rerender } = render(<SearchInput defaultValue="some query" />);
-    const input = screen.getByPlaceholderText(/Search your library/i);
+    const input = screen.getByPlaceholderText(/Search by title or author/i);
     expect(input).toHaveValue("some query");
 
     rerender(<SearchInput defaultValue="" />);
@@ -97,7 +97,7 @@ describe("SearchInput", () => {
 
   it("preserves typed value when server re-renders with updated query", () => {
     const { rerender } = render(<SearchInput defaultValue="hello" />);
-    const input = screen.getByPlaceholderText(/Search your library/i);
+    const input = screen.getByPlaceholderText(/Search by title or author/i);
 
     fireEvent.change(input, { target: { value: "hello world" } });
 

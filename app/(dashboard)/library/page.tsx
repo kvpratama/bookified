@@ -40,7 +40,7 @@ export default async function LibraryPage({
     .range(from, to);
 
   if (query) {
-    dbQuery = dbQuery.ilike("name", `%${query}%`);
+    dbQuery = dbQuery.or(`name.ilike.%${query}%,author.ilike.%${query}%`);
   }
 
   const { data: documents, error, count } = await dbQuery;

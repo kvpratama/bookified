@@ -69,7 +69,7 @@ export function SearchInput({ defaultValue = "" }: { defaultValue?: string }) {
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search your library..."
+        placeholder="Search by title or author..."
         className={cn(
           "w-full pl-10 pr-10 py-5 bg-muted/50 border-transparent transition-all duration-200",
           "focus-visible:ring-1 focus-visible:ring-ring focus-visible:bg-background focus-visible:border-border",

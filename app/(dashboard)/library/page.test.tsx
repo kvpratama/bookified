@@ -69,6 +69,7 @@ const mockSelect = vi.fn();
 const mockOrder = vi.fn();
 const mockRange = vi.fn();
 const mockIlike = vi.fn();
+const mockOr = vi.fn();
 const mockFrom = vi.fn();
 
 let mockData: typeof mockDocuments | null = mockDocuments;
@@ -90,7 +91,7 @@ vi.mock("../_components/BookCard", () => ({
 vi.mock("./search-input", () => ({
   SearchInput: ({ defaultValue }: { defaultValue?: string }) => (
     <input
-      placeholder="Search your library..."
+      placeholder="Search by title or author..."
       defaultValue={defaultValue}
       data-testid="search-input"
     />
@@ -109,6 +110,7 @@ describe("LibraryPage", () => {
       order: vi.fn().mockReturnThis(),
       range: vi.fn().mockReturnThis(),
       ilike: vi.fn().mockReturnThis(),
+      or: vi.fn().mockReturnThis(),
       then: vi.fn().mockImplementation((resolve) => {
         return resolve({ data: mockData, error: mockError, count: mockCount });
       }),
@@ -117,30 +119,42 @@ describe("LibraryPage", () => {
     mockRange.mockReturnValue(mockBuilder);
     mockOrder.mockReturnValue(mockBuilder);
     mockIlike.mockReturnValue(mockBuilder);
+    mockOr.mockReturnValue(mockBuilder);
     mockSelect.mockReturnValue({
       order: mockOrder,
       range: mockRange,
       ilike: mockIlike,
+      or: mockOr,
     });
     mockFrom.mockReturnValue({ select: mockSelect });
 
-    // Ensure mockOrder returns something that has range/ilike
+    // Ensure mockOrder returns something that has range/ilike/or
     mockOrder.mockReturnValue({
       order: mockOrder,
       range: mockRange,
       ilike: mockIlike,
+      or: mockOr,
       then: mockBuilder.then,
     });
     mockRange.mockReturnValue({
       order: mockOrder,
       range: mockRange,
       ilike: mockIlike,
+      or: mockOr,
       then: mockBuilder.then,
     });
     mockIlike.mockReturnValue({
       order: mockOrder,
       range: mockRange,
       ilike: mockIlike,
+      or: mockOr,
+      then: mockBuilder.then,
+    });
+    mockOr.mockReturnValue({
+      order: mockOrder,
+      range: mockRange,
+      ilike: mockIlike,
+      or: mockOr,
       then: mockBuilder.then,
     });
   });
@@ -182,7 +196,7 @@ describe("LibraryPage", () => {
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
     expect(
-      screen.getAllByPlaceholderText(/search your library/i)[0],
+      screen.getAllByPlaceholderText(/search by title or author/i)[0],
     ).toBeInTheDocument();
   });
 
@@ -193,7 +207,7 @@ describe("LibraryPage", () => {
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
     expect(
-      screen.getAllByPlaceholderText(/search your library/i)[0],
+      screen.getAllByPlaceholderText(/search by title or author/i)[0],
     ).toBeInTheDocument();
   });
 
@@ -206,7 +220,7 @@ describe("LibraryPage", () => {
     });
     render(Page);
     expect(
-      screen.getAllByPlaceholderText(/search your library/i)[0],
+      screen.getAllByPlaceholderText(/search by title or author/i)[0],
     ).toBeInTheDocument();
     expect(
       screen.getByText(/no books found matching "nonexistent"/i),
@@ -222,7 +236,9 @@ describe("LibraryPage", () => {
     });
     render(Page);
 
-    expect(mockIlike).toHaveBeenCalledWith("name", "%OnlyBook1%");
+    expect(mockOr).toHaveBeenCalledWith(
+      "name.ilike.%OnlyBook1%,author.ilike.%OnlyBook1%",
+    );
     expect(
       screen.getByText(/1 book matching "OnlyBook1"/i),
     ).toBeInTheDocument();
@@ -230,6 +246,21 @@ describe("LibraryPage", () => {
       "OnlyBook1.pdf",
     );
     expect(screen.queryAllByText("Test Book 2.pdf").length).toBe(0);
+  });
+
+  it("filters results when searching by author name", async () => {
+    mockData = [mockDocuments[1]];
+    mockCount = 1;
+
+    const Page = await LibraryPage({
+      searchParams: Promise.resolve({ q: "Author 2" }),
+    });
+    render(Page);
+
+    expect(mockOr).toHaveBeenCalledWith(
+      "name.ilike.%Author 2%,author.ilike.%Author 2%",
+    );
+    expect(screen.getByText(/1 book matching "Author 2"/i)).toBeInTheDocument();
   });
 
   it("shows empty state when no books found", async () => {
@@ -242,7 +273,7 @@ describe("LibraryPage", () => {
       screen.getByText(/no books found in your library/i),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByPlaceholderText(/search your library/i)[0],
+      screen.getAllByPlaceholderText(/search by title or author/i)[0],
     ).toBeInTheDocument();
   });
 
