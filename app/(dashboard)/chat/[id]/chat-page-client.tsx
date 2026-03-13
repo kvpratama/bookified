@@ -66,7 +66,9 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
         {/* Left pane — PDF viewer */}
         <div
           className={
-            chatCollapsed ? "flex-1 min-w-0" : "w-3/4 min-w-0 hidden md:block"
+            chatCollapsed
+              ? "flex-1 min-w-0 h-full overflow-hidden"
+              : "w-3/4 min-w-0 h-full overflow-hidden hidden md:block"
           }
         >
           <PdfViewer document={doc} />
@@ -75,7 +77,9 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
         {/* Right pane — Chat */}
         <div
           className={
-            chatCollapsed ? "" : "w-full md:w-1/4 min-w-[280px] max-w-md"
+            chatCollapsed
+              ? ""
+              : "w-full md:w-1/4 min-w-[280px] max-w-md h-full overflow-hidden"
           }
         >
           <ChatPanel

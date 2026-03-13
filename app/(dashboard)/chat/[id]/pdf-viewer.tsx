@@ -92,7 +92,7 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
             <ChevronLeft className="w-4 h-4" />
             <span className="sr-only">Previous page</span>
           </Button>
-          <span className="text-xs text-muted-foreground font-medium tabular-nums min-w-[5rem] text-center select-none">
+          <span className="text-xs text-muted-foreground font-medium tabular-nums min-w-20 text-center select-none">
             {isLoading ? (
               "Loading…"
             ) : (
@@ -125,7 +125,7 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
             <ZoomOut className="w-3.5 h-3.5" />
             <span className="sr-only">Zoom out</span>
           </Button>
-          <span className="text-xs text-muted-foreground font-medium tabular-nums min-w-[3rem] text-center select-none">
+          <span className="text-xs text-muted-foreground font-medium tabular-nums min-w-12 text-center select-none">
             {Math.round(scale * 100)}%
           </span>
           <Button
@@ -175,7 +175,7 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
             <Page
               pageNumber={currentPage}
               scale={scale}
-              className="shadow-lg rounded border border-border/50 overflow-hidden [&_canvas]:!w-full [&_canvas]:!h-auto"
+              className="shadow-lg rounded border border-border/50 overflow-hidden [&_canvas]:w-full! [&_canvas]:h-auto!"
               loading={
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />

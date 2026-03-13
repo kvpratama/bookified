@@ -22,15 +22,17 @@ export function ChatPanel({
 }) {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { chats, addMessage } = useAppStore();
   const currentChat = useMemo(() => chats[doc.id] || [], [chats, doc.id]);
 
   // Scroll to bottom on new message
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    if (scrollViewportRef.current) {
+      scrollViewportRef.current.scrollTop =
+        scrollViewportRef.current.scrollHeight;
     }
   }, [currentChat, isTyping]);
 
@@ -39,6 +41,7 @@ export function ChatPanel({
 
     const userMsg = inputValue.trim();
     setInputValue("");
+    inputRef.current?.focus();
 
     addMessage(doc.id, {
       id: Math.random().toString(36).substring(7),
@@ -70,6 +73,9 @@ export function ChatPanel({
           content: `${randomResponse} Is there a specific section you'd like me to analyze further?`,
           timestamp: new Date().toISOString(),
         });
+
+        // Refocus input after AI response
+        inputRef.current?.focus();
       },
       1500 + Math.random() * 1000,
     );
@@ -110,7 +116,7 @@ export function ChatPanel({
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-muted/30 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <Sparkles className="w-4 h-4 text-accent-foreground shrink-0" />
-          <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground truncate">
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground truncate">
             Chat
           </span>
         </div>
@@ -126,7 +132,7 @@ export function ChatPanel({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-3">
+      <ScrollArea className="flex-1 p-3" viewportRef={scrollViewportRef}>
         <div className="space-y-4 flex flex-col pb-2">
           {currentChat.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center mx-auto max-w-[200px]">
@@ -202,7 +208,6 @@ export function ChatPanel({
               </div>
             </div>
           )}
-          <div ref={scrollRef} />
         </div>
       </ScrollArea>
 
@@ -210,13 +215,13 @@ export function ChatPanel({
       <div className="p-2.5 bg-background border-t border-border shrink-0">
         <div className="relative flex items-end gap-1.5">
           <Input
+            ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about this document…"
             aria-label="Chat message input"
             className="pr-10 py-5 text-[13px] bg-muted border-border focus-visible:ring-1 focus-visible:ring-ring"
-            disabled={isTyping}
           />
           <Button
             size="icon"
