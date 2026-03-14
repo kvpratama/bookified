@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatBytes, formatDocumentName } from "@/lib/utils";
 import { ChatPanel } from "./chat-panel";
+import { OutlinePanel } from "./outline-panel";
 import type { ChatDocument } from "./types";
 
 const PdfViewer = dynamic(
@@ -27,6 +28,37 @@ const PdfViewer = dynamic(
 export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
   const router = useRouter();
   const [chatCollapsed, setChatCollapsed] = useState(false);
+  const [outlineVisible, setOutlineVisible] = useState(false);
+  const [hasOutline, setHasOutline] = useState(false);
+  const [selectedPage, setSelectedPage] = useState<number | undefined>();
+  const outlineRef = useRef<HTMLDivElement>(null);
+  const toggleButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handlePageSelect = (pageNumber: number) => {
+    setSelectedPage(pageNumber);
+    // Reset after a brief moment to allow navigation
+    setTimeout(() => setSelectedPage(undefined), 100);
+  };
+
+  // Close outline when clicking outside
+  useEffect(() => {
+    if (!outlineVisible) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        outlineRef.current &&
+        !outlineRef.current.contains(target) &&
+        toggleButtonRef.current &&
+        !toggleButtonRef.current.contains(target)
+      ) {
+        setOutlineVisible(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [outlineVisible]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
@@ -41,6 +73,18 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
           <ArrowLeft className="w-4 h-4" />
           <span className="sr-only">Back</span>
         </Button>
+        {hasOutline && (
+          <Button
+            ref={toggleButtonRef}
+            variant="ghost"
+            size="icon"
+            onClick={() => setOutlineVisible((prev) => !prev)}
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground rounded-full"
+            aria-label="Toggle outline"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </Button>
+        )}
         <div className="min-w-0 flex-1 flex items-center gap-3">
           <div className="p-2 bg-primary/5 rounded-md shrink-0 border border-primary/10">
             <FileText className="w-4 h-4 text-primary opacity-80" />
@@ -79,7 +123,17 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
 
       {/* Split-pane content */}
       <div className="flex flex-1 min-h-0 relative bg-[#F8F9FA] dark:bg-[#121212]">
-        {/* Left pane — PDF viewer */}
+        {/* Outline pane */}
+        <div ref={outlineRef}>
+          <OutlinePanel
+            document={doc}
+            visible={outlineVisible}
+            onOutlineLoad={setHasOutline}
+            onPageSelect={handlePageSelect}
+          />
+        </div>
+
+        {/* PDF viewer */}
         <div
           className={
             chatCollapsed
@@ -87,10 +141,10 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
               : "flex-1 min-w-0 h-full overflow-hidden transition-all duration-500 ease-in-out hidden md:block"
           }
         >
-          <PdfViewer document={doc} />
+          <PdfViewer document={doc} externalPage={selectedPage} />
         </div>
 
-        {/* Right pane — Chat */}
+        {/* Chat panel */}
         <div
           className={
             chatCollapsed

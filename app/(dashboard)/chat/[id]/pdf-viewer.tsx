@@ -29,7 +29,13 @@ const ZOOM_STEP = 0.15;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
 
-export function PdfViewer({ document: doc }: { document: ChatDocument }) {
+export function PdfViewer({
+  document: doc,
+  externalPage,
+}: {
+  document: ChatDocument;
+  externalPage?: number;
+}) {
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(doc.current_page || 1);
   const [scale, setScale] = useState(1.0);
@@ -65,6 +71,12 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
     },
     [numPages, debouncedUpdateProgress],
   );
+
+  // Handle external page navigation during render (not in effect)
+  if (externalPage && externalPage !== currentPage && numPages > 0) {
+    // This is safe because it only happens once per externalPage change
+    setCurrentPage(Math.max(1, Math.min(externalPage, numPages)));
+  }
 
   useEffect(() => {
     updateDocumentProgress(doc.id, currentPage, new Date().toISOString());

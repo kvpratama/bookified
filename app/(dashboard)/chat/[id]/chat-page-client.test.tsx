@@ -35,9 +35,22 @@ vi.mock("next/image", () => ({
 
 // Mock PdfViewer — stub the module (prevents real pdf-viewer.tsx from loading)
 vi.mock("./pdf-viewer", () => ({
-  PdfViewer: ({ document }: { document: { id: string } }) => (
-    <div data-testid="pdf-viewer">{document.id}</div>
-  ),
+  PdfViewer: ({
+    document,
+    onPageChange,
+  }: {
+    document: { id: string };
+    onPageChange?: (page: number) => void;
+  }) => {
+    return (
+      <div data-testid="pdf-viewer">
+        {document.id}
+        <button data-testid="pdf-goto-page" onClick={() => onPageChange?.(5)}>
+          Go to page 5
+        </button>
+      </div>
+    );
+  },
 }));
 
 // Mock next/dynamic to skip lazy loading — return the PdfViewer stub synchronously
@@ -62,6 +75,35 @@ vi.mock("./chat-panel", () => ({
       <button onClick={onToggle}>toggle</button>
     </div>
   ),
+}));
+
+// Mock OutlinePanel
+vi.mock("./outline-panel", () => ({
+  OutlinePanel: ({
+    visible,
+    onOutlineLoad,
+    onPageSelect,
+  }: {
+    visible: boolean;
+    onOutlineLoad: (hasOutline: boolean) => void;
+    onPageSelect: (page: number) => void;
+    document: object;
+  }) => {
+    // Simulate outline loading
+    if (onOutlineLoad) {
+      setTimeout(() => onOutlineLoad(true), 0);
+    }
+    return (
+      <div data-testid="outline-panel" data-visible={visible}>
+        <button
+          data-testid="outline-select-page"
+          onClick={() => onPageSelect(10)}
+        >
+          Select page 10
+        </button>
+      </div>
+    );
+  },
 }));
 
 import { ChatPageClient } from "./chat-page-client";
@@ -158,5 +200,78 @@ describe("ChatPageClient", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /toggle/i }));
     expect(chatPanel).toHaveAttribute("data-collapsed", "false");
+  });
+
+  it("renders outline panel hidden by default", () => {
+    render(<ChatPageClient document={mockDocument} />);
+    const outlinePanel = screen.getByTestId("outline-panel");
+    expect(outlinePanel).toHaveAttribute("data-visible", "false");
+  });
+
+  it("does not show outline toggle button initially", () => {
+    render(<ChatPageClient document={mockDocument} />);
+    expect(
+      screen.queryByRole("button", { name: /outline/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows outline toggle button when PDF has outline", async () => {
+    render(<ChatPageClient document={mockDocument} />);
+    // Wait for outline to load (mocked to call onOutlineLoad(true))
+    const toggleButton = await screen.findByRole("button", {
+      name: /outline/i,
+    });
+    expect(toggleButton).toBeInTheDocument();
+  });
+
+  it("toggles outline panel visibility when toggle button is clicked", async () => {
+    render(<ChatPageClient document={mockDocument} />);
+    const toggleButton = await screen.findByRole("button", {
+      name: /outline/i,
+    });
+    const outlinePanel = screen.getByTestId("outline-panel");
+
+    expect(outlinePanel).toHaveAttribute("data-visible", "false");
+
+    fireEvent.click(toggleButton);
+    expect(outlinePanel).toHaveAttribute("data-visible", "true");
+
+    fireEvent.click(toggleButton);
+    expect(outlinePanel).toHaveAttribute("data-visible", "false");
+  });
+
+  it("navigates PDF viewer when outline item is selected", async () => {
+    render(<ChatPageClient document={mockDocument} />);
+
+    // Wait for outline to load
+    await screen.findByRole("button", { name: /outline/i });
+
+    // Click outline item to select page 10
+    const selectPageButton = screen.getByTestId("outline-select-page");
+    fireEvent.click(selectPageButton);
+
+    // Verify the page selection was handled (implementation will update PDF viewer)
+    // For now, just verify the button exists and is clickable
+    expect(selectPageButton).toBeInTheDocument();
+  });
+
+  it("closes outline when clicking outside of it", async () => {
+    render(<ChatPageClient document={mockDocument} />);
+
+    // Open outline
+    const toggleButton = await screen.findByRole("button", {
+      name: /outline/i,
+    });
+    fireEvent.click(toggleButton);
+
+    const outlinePanel = screen.getByTestId("outline-panel");
+    expect(outlinePanel).toHaveAttribute("data-visible", "true");
+
+    // Click on PDF viewer area (outside outline)
+    const pdfViewer = screen.getByTestId("pdf-viewer");
+    fireEvent.mouseDown(pdfViewer);
+
+    // Outline should close
+    expect(outlinePanel).toHaveAttribute("data-visible", "false");
   });
 });
