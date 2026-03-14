@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getBlobUrl } from "@/lib/utils";
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce-callback";
+import { useKeyboardNavigation } from "@/lib/hooks/use-keyboard-navigation";
 import { updateDocumentProgress } from "./actions";
 import type { ChatDocument } from "./types";
 
@@ -73,6 +74,11 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   const zoomOut = useCallback(() => {
     setScale((s) => Math.max(s - ZOOM_STEP, MIN_SCALE));
   }, []);
+
+  useKeyboardNavigation({
+    onLeft: () => goToPage(currentPage - 1),
+    onRight: () => goToPage(currentPage + 1),
+  });
 
   const fileUrl = getBlobUrl(doc.blob_url);
 
