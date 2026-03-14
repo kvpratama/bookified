@@ -1,51 +1,9 @@
 import { render, screen, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { OutlinePanel } from "./outline-panel";
-import type { ChatDocument } from "./types";
 
-// Mock react-pdf with configurable success/error behavior
-const mockOutlineBehavior = vi.hoisted(() => ({
-  shouldError: false,
-}));
-
+// Mock react-pdf - no longer needed in OutlinePanel
 vi.mock("react-pdf", () => ({
-  Document: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="pdf-document">{children}</div>
-  ),
-  Outline: ({
-    onLoadSuccess,
-    onLoadError,
-    onItemClick,
-  }: {
-    onLoadSuccess?: (outline: unknown) => void;
-    onLoadError?: () => void;
-    onItemClick?: (item: { pageNumber: number }) => void;
-  }) => {
-    // Simulate outline loading or error
-    if (mockOutlineBehavior.shouldError) {
-      if (onLoadError) {
-        setTimeout(() => onLoadError(), 0);
-      }
-      return <div data-testid="pdf-outline-error">No outline available</div>;
-    }
-
-    if (onLoadSuccess) {
-      setTimeout(
-        () => onLoadSuccess([{ title: "Chapter 1", dest: null, items: [] }]),
-        0,
-      );
-    }
-    return (
-      <div data-testid="pdf-outline">
-        <button
-          data-testid="outline-item"
-          onClick={() => onItemClick?.({ pageNumber: 5 })}
-        >
-          Chapter 1
-        </button>
-      </div>
-    );
-  },
   pdfjs: {
     GlobalWorkerOptions: {
       workerSrc: "",
@@ -53,64 +11,67 @@ vi.mock("react-pdf", () => ({
   },
 }));
 
-const mockDocument: ChatDocument = {
-  id: "test-doc-1",
-  name: "Test Document.pdf",
-  author: "Test Author",
-  page_count: 100,
-  size: 1024000,
-  blob_url: "https://example.com/test.pdf",
-  current_page: 1,
-};
+const mockOutline = [
+  {
+    title: "Chapter 1",
+    dest: null,
+    items: [
+      { title: "Section 1.1", dest: null, items: [] },
+      { title: "Section 1.2", dest: null, items: [] },
+    ],
+  },
+  {
+    title: "Chapter 2",
+    dest: null,
+    items: [],
+  },
+];
 
 describe("OutlinePanel", () => {
   afterEach(() => {
     cleanup();
-    mockOutlineBehavior.shouldError = false; // Reset after each test
   });
 
-  it("renders outline when PDF has bookmarks", async () => {
+  it("renders outline items when outline data is provided", () => {
     const onPageSelect = vi.fn();
-    const onOutlineLoad = vi.fn();
 
     render(
       <OutlinePanel
-        document={mockDocument}
+        outline={mockOutline}
         onPageSelect={onPageSelect}
         visible={true}
-        onOutlineLoad={onOutlineLoad}
+        isLoading={false}
       />,
     );
 
-    expect(await screen.findByTestId("pdf-outline")).toBeInTheDocument();
+    expect(screen.getByText("Chapter 1")).toBeInTheDocument();
+    expect(screen.getByText("Chapter 2")).toBeInTheDocument();
   });
 
-  it("calls onOutlineLoad when outline is successfully loaded", async () => {
+  it("shows loading state when isLoading is true", () => {
     const onPageSelect = vi.fn();
-    const onOutlineLoad = vi.fn();
 
     render(
       <OutlinePanel
-        document={mockDocument}
+        outline={null}
         onPageSelect={onPageSelect}
         visible={true}
-        onOutlineLoad={onOutlineLoad}
+        isLoading={true}
       />,
     );
 
-    await vi.waitFor(() => expect(onOutlineLoad).toHaveBeenCalledWith(true));
+    expect(screen.getByText(/Loading outline/i)).toBeInTheDocument();
   });
 
   it("is hidden when visible prop is false", () => {
     const onPageSelect = vi.fn();
-    const onOutlineLoad = vi.fn();
 
     render(
       <OutlinePanel
-        document={mockDocument}
+        outline={mockOutline}
         onPageSelect={onPageSelect}
         visible={false}
-        onOutlineLoad={onOutlineLoad}
+        isLoading={false}
       />,
     );
 
@@ -120,14 +81,13 @@ describe("OutlinePanel", () => {
 
   it("is visible when visible prop is true", () => {
     const onPageSelect = vi.fn();
-    const onOutlineLoad = vi.fn();
 
     render(
       <OutlinePanel
-        document={mockDocument}
+        outline={mockOutline}
         onPageSelect={onPageSelect}
         visible={true}
-        onOutlineLoad={onOutlineLoad}
+        isLoading={false}
       />,
     );
 
@@ -135,59 +95,18 @@ describe("OutlinePanel", () => {
     expect(panel).not.toHaveClass("w-0");
   });
 
-  it("calls onPageSelect when outline item is clicked", async () => {
+  it("does not render Document component", () => {
     const onPageSelect = vi.fn();
-    const onOutlineLoad = vi.fn();
 
     render(
       <OutlinePanel
-        document={mockDocument}
+        outline={mockOutline}
         onPageSelect={onPageSelect}
         visible={true}
-        onOutlineLoad={onOutlineLoad}
+        isLoading={false}
       />,
     );
 
-    const outlineItem = await screen.findByTestId("outline-item");
-    outlineItem.click();
-
-    expect(onPageSelect).toHaveBeenCalledWith(5);
-  });
-
-  it("applies library aesthetic styling classes", () => {
-    const onPageSelect = vi.fn();
-    const onOutlineLoad = vi.fn();
-
-    render(
-      <OutlinePanel
-        document={mockDocument}
-        onPageSelect={onPageSelect}
-        visible={true}
-        onOutlineLoad={onOutlineLoad}
-      />,
-    );
-
-    const panel = screen.getByTestId("outline-panel");
-    // Check for warm background and border styling
-    expect(panel.className).toMatch(/bg-/);
-    expect(panel.className).toMatch(/border-/);
-  });
-
-  it("calls onOutlineLoad with false when outline fails to load", async () => {
-    mockOutlineBehavior.shouldError = true;
-
-    const onPageSelect = vi.fn();
-    const onOutlineLoad = vi.fn();
-
-    render(
-      <OutlinePanel
-        document={mockDocument}
-        onPageSelect={onPageSelect}
-        visible={true}
-        onOutlineLoad={onOutlineLoad}
-      />,
-    );
-
-    await vi.waitFor(() => expect(onOutlineLoad).toHaveBeenCalledWith(false));
+    expect(screen.queryByTestId("pdf-document")).not.toBeInTheDocument();
   });
 });

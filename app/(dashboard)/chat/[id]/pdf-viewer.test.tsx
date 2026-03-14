@@ -316,4 +316,36 @@ describe("PdfViewer", () => {
       );
     });
   });
+
+  describe("Outline Extraction", () => {
+    it("calls onOutlineExtracted with outline data when PDF loads", async () => {
+      const mockOnOutlineExtracted = vi.fn();
+
+      render(
+        <PdfViewer
+          document={mockDocument}
+          onOutlineExtracted={mockOnOutlineExtracted}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(mockOnOutlineExtracted).toHaveBeenCalled();
+      });
+    });
+
+    it("calls onOutlineExtracted with null when PDF has no outline", async () => {
+      const mockOnOutlineExtracted = vi.fn();
+
+      render(
+        <PdfViewer
+          document={mockDocument}
+          onOutlineExtracted={mockOnOutlineExtracted}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(mockOnOutlineExtracted).toHaveBeenCalledWith(null, false);
+      });
+    });
+  });
 });

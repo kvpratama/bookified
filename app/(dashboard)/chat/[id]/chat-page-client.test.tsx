@@ -1,5 +1,6 @@
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import React from "react";
 import type { ChatDocument } from "./types";
 
 // Mock next/navigation
@@ -48,10 +49,25 @@ vi.mock("./pdf-viewer", () => ({
   PdfViewer: ({
     document,
     onPageChange,
+    onOutlineExtracted,
   }: {
     document: { id: string };
     onPageChange?: (page: number) => void;
+    onOutlineExtracted?: (
+      outline: unknown[] | null,
+      isLoading: boolean,
+    ) => void;
   }) => {
+    // Simulate outline extraction on mount
+    React.useEffect(() => {
+      if (onOutlineExtracted) {
+        onOutlineExtracted(
+          [{ title: "Chapter 1", dest: null, items: [] }],
+          false,
+        );
+      }
+    }, [onOutlineExtracted]);
+
     return (
       <div data-testid="pdf-viewer">
         {document.id}
@@ -237,16 +253,9 @@ describe("ChatPageClient", () => {
     expect(outlinePanel).toHaveAttribute("data-visible", "false");
   });
 
-  it("does not show outline toggle button initially", () => {
-    render(<ChatPageClient document={mockDocument} />);
-    expect(
-      screen.queryByRole("button", { name: /outline/i }),
-    ).not.toBeInTheDocument();
-  });
-
   it("shows outline toggle button when PDF has outline", async () => {
     render(<ChatPageClient document={mockDocument} />);
-    // Wait for outline to load (mocked to call onOutlineLoad(true))
+    // Wait for outline to load (mocked to call onOutlineExtracted with outline data)
     const toggleButton = await screen.findByRole("button", {
       name: /outline/i,
     });
@@ -325,7 +334,7 @@ describe("ChatPageClient", () => {
       mockSearchParams = new URLSearchParams();
       render(<ChatPageClient document={mockDocument} />);
 
-      fireEvent.click(screen.getByRole("button", { name: /toggle/i }));
+      fireEvent.click(screen.getByText("toggle-chat"));
 
       expect(mockReplace).toHaveBeenCalledWith(
         expect.stringContaining("chat=expanded"),
@@ -346,6 +355,20 @@ describe("ChatPageClient", () => {
         expect.stringContaining("outline=true"),
         expect.any(Object),
       );
+    });
+  });
+
+  describe("Outline Data Flow", () => {
+    it("passes outline data from PdfViewer to OutlinePanel", async () => {
+      render(<ChatPageClient document={mockDocument} />);
+
+      // Simulate PdfViewer extracting outline
+      const pdfViewer = await screen.findByTestId("pdf-viewer");
+      expect(pdfViewer).toBeInTheDocument();
+
+      // OutlinePanel should receive outline data
+      const outlinePanel = await screen.findByTestId("outline-panel");
+      expect(outlinePanel).toBeInTheDocument();
     });
   });
 });

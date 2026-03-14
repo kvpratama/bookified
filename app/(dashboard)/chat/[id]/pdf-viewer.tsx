@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Document, Page } from "react-pdf";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "@/lib/pdf-worker";
@@ -22,7 +23,7 @@ import {
 import { toast } from "sonner";
 // ... (imports)
 import { updateDocumentProgress } from "./actions";
-import type { ChatDocument } from "./types";
+import type { ChatDocument, OutlineItem } from "./types";
 
 const ZOOM_STEP = 0.15;
 const MIN_SCALE = 0.5;
@@ -37,9 +38,16 @@ function clampPage(page: number, totalPages?: number): number {
 export function PdfViewer({
   document: doc,
   externalPage,
+  onOutlineExtracted,
+  onDocumentLoad,
 }: {
   document: ChatDocument;
   externalPage?: number;
+  onOutlineExtracted?: (
+    outline: OutlineItem[] | null,
+    isLoading: boolean,
+  ) => void;
+  onDocumentLoad?: (pdfDocument: PDFDocumentProxy) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -90,12 +98,27 @@ export function PdfViewer({
   }, [containerWidth, debouncedSetContainerWidth]);
 
   const onDocumentLoadSuccess = useCallback(
-    ({ numPages: total }: { numPages: number }) => {
-      setNumPages(total);
-      setCurrentPage((p) => clampPage(p, total));
+    async (pdf: PDFDocumentProxy) => {
+      setNumPages(pdf.numPages);
+      setCurrentPage((p) => clampPage(p, pdf.numPages));
       setIsLoading(false);
+
+      // Pass PDF document instance to parent
+      if (onDocumentLoad) {
+        onDocumentLoad(pdf);
+      }
+
+      // Extract outline
+      if (onOutlineExtracted) {
+        try {
+          const outline = await pdf.getOutline();
+          onOutlineExtracted(outline as OutlineItem[] | null, false);
+        } catch {
+          onOutlineExtracted(null, false);
+        }
+      }
     },
-    [],
+    [onOutlineExtracted, onDocumentLoad],
   );
 
   const onDocumentLoadError = useCallback(() => {

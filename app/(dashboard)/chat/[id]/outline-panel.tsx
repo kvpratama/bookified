@@ -1,40 +1,67 @@
 "use client";
 
-import { Document, Outline } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "@/lib/pdf-worker";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, getBlobUrl } from "@/lib/utils";
-import type { ChatDocument } from "./types";
+import { cn } from "@/lib/utils";
+import type { OutlineItem } from "./types";
 import "./outline-panel.css";
 
 interface OutlinePanelProps {
-  document: ChatDocument;
+  outline: OutlineItem[] | null;
   onPageSelect: (pageNumber: number) => void;
   visible: boolean;
-  onOutlineLoad: (hasOutline: boolean) => void;
+  isLoading: boolean;
+  pdfDocument?: PDFDocumentProxy | null;
 }
 
 export function OutlinePanel({
-  document,
+  outline,
   visible,
-  onOutlineLoad,
+  isLoading,
   onPageSelect,
+  pdfDocument,
 }: OutlinePanelProps) {
-  const handleLoadSuccess = (outline: unknown) => {
-    onOutlineLoad(!!outline);
+  const handleItemClick = async (dest: unknown) => {
+    if (!pdfDocument || !dest) return;
+
+    try {
+      // dest can be a string (named destination) or array [ref, ...]
+      let pageIndex: number;
+
+      if (Array.isArray(dest) && dest[0]) {
+        // dest is [ref, ...] - get page index from ref
+        pageIndex = await pdfDocument.getPageIndex(dest[0]);
+      } else {
+        // Fallback to page 1 if we can't resolve
+        pageIndex = 0;
+      }
+
+      // Page numbers are 1-indexed for users
+      onPageSelect(pageIndex + 1);
+    } catch {
+      // If resolution fails, just go to page 1
+      onPageSelect(1);
+    }
   };
 
-  const handleLoadError = () => {
-    onOutlineLoad(false);
+  const renderOutlineItems = (items: OutlineItem[]) => {
+    return items.map((item, index) => (
+      <div key={index}>
+        <button
+          onClick={() => handleItemClick(item.dest)}
+          className="text-left w-full py-1 px-2 hover:bg-muted/50 rounded text-sm"
+        >
+          {item.title}
+        </button>
+        {item.items && item.items.length > 0 && (
+          <div className="ml-3">{renderOutlineItems(item.items)}</div>
+        )}
+      </div>
+    ));
   };
-
-  const handleItemClick = ({ pageNumber }: { pageNumber: number }) => {
-    onPageSelect(pageNumber);
-  };
-
-  const fileUrl = getBlobUrl(document.blob_url);
 
   return (
     <div
@@ -51,13 +78,12 @@ export function OutlinePanel({
       </div>
       <ScrollArea className="h-[calc(100%-57px)]">
         <div className="px-3 py-4 outline-panel-content">
-          <Document file={fileUrl} loading={null}>
-            <Outline
-              onLoadSuccess={handleLoadSuccess}
-              onLoadError={handleLoadError}
-              onItemClick={handleItemClick}
-            />
-          </Document>
+          {isLoading && (
+            <div className="text-sm text-muted-foreground">
+              Loading outline...
+            </div>
+          )}
+          {!isLoading && outline && renderOutlineItems(outline)}
         </div>
       </ScrollArea>
     </div>

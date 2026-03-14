@@ -7,7 +7,8 @@ import { ArrowLeft, FileText, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatBytes, formatDocumentName } from "@/lib/utils";
 import { ChatPanel } from "./chat-panel";
-import type { ChatDocument } from "./types";
+import type { ChatDocument, OutlineItem } from "./types";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 
 const PdfViewer = dynamic(
   () => import("./pdf-viewer").then((mod) => ({ default: mod.PdfViewer })),
@@ -41,10 +42,26 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
   const [outlineVisible, setOutlineVisible] = useState(
     searchParams.get("outline") === "true",
   );
+  const [outline, setOutline] = useState<OutlineItem[] | null>(null);
+  const [isOutlineLoading, setIsOutlineLoading] = useState(true);
   const [hasOutline, setHasOutline] = useState(false);
+  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [selectedPage, setSelectedPage] = useState<number | undefined>();
   const outlineRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleOutlineExtracted = useCallback(
+    (extractedOutline: OutlineItem[] | null, isLoading: boolean) => {
+      setOutline(extractedOutline);
+      setIsOutlineLoading(isLoading);
+      setHasOutline(!!extractedOutline);
+    },
+    [],
+  );
+
+  const handleDocumentLoad = useCallback((pdf: PDFDocumentProxy) => {
+    setPdfDocument(pdf);
+  }, []);
 
   const updateUrl = useCallback(
     (params: Record<string, string | null>) => {
@@ -175,10 +192,11 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
         {/* Outline pane */}
         <div ref={outlineRef}>
           <OutlinePanel
-            document={doc}
+            outline={outline}
             visible={outlineVisible}
-            onOutlineLoad={setHasOutline}
+            isLoading={isOutlineLoading}
             onPageSelect={handlePageSelect}
+            pdfDocument={pdfDocument}
           />
         </div>
 
@@ -189,7 +207,12 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
             !chatCollapsed && "hidden md:block",
           )}
         >
-          <PdfViewer document={doc} externalPage={selectedPage} />
+          <PdfViewer
+            document={doc}
+            externalPage={selectedPage}
+            onOutlineExtracted={handleOutlineExtracted}
+            onDocumentLoad={handleDocumentLoad}
+          />
         </div>
 
         {/* Chat panel */}

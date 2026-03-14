@@ -5,3 +5,10 @@ export type ChatDocument = Pick<
   Tables<"documents">,
   "id" | "name" | "author" | "page_count" | "size" | "blob_url" | "current_page"
 >;
+
+/** PDF outline item structure from react-pdf */
+export type OutlineItem = {
+  title: string;
+  dest: unknown;
+  items?: OutlineItem[];
+};
