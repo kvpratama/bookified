@@ -16,6 +16,14 @@ export async function updateDocumentProgress(
   try {
     const supabase = await createClient();
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { data: null, error: "Unauthorized" };
+    }
+
     const { error } = await supabase
       .from("documents")
       .update({

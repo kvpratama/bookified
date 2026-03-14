@@ -1,9 +1,19 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDocumentName } from "@/lib/utils";
 import { ChatPageClient } from "./chat-page-client";
 import type { ChatDocument } from "./types";
+
+const getDocument = cache(async (id: string) => {
+  const supabase = await createClient();
+  return supabase
+    .from("documents")
+    .select("id, name, author, page_count, size, blob_url, current_page")
+    .eq("id", id)
+    .single();
+});
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -13,12 +23,7 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: doc } = await supabase
-    .from("documents")
-    .select("name")
-    .eq("id", id)
-    .single();
+  const { data: doc } = await getDocument(id);
 
   return {
     title: doc ? formatDocumentName(doc.name) : "Document Not Found",
@@ -27,12 +32,7 @@ export async function generateMetadata({
 
 export default async function ChatPage({ params }: PageProps) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: doc, error } = await supabase
-    .from("documents")
-    .select("id, name, author, page_count, size, blob_url, current_page")
-    .eq("id", id)
-    .single();
+  const { data: doc, error } = await getDocument(id);
 
   if (error || !doc) {
     notFound();

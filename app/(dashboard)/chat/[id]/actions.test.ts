@@ -3,10 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockEq = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
 const mockFrom = vi.hoisted(() => vi.fn());
+const mockGetUser = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }),
+);
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn().mockImplementation(async () => ({
     from: mockFrom,
+    auth: { getUser: mockGetUser },
   })),
 }));
 
@@ -20,6 +24,7 @@ describe("updateDocumentProgress", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
     mockEq.mockResolvedValue({ error: null });
     mockUpdate.mockReturnValue({ eq: mockEq });
     mockFrom.mockReturnValue({ update: mockUpdate });
@@ -44,6 +49,18 @@ describe("updateDocumentProgress", () => {
     );
 
     expect(result).toEqual({ data: null, error: null });
+  });
+
+  it("returns { data: null, error: 'Unauthorized' } when user is not authenticated", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+
+    const result = await updateDocumentProgress(
+      documentId,
+      currentPage,
+      lastAccessed,
+    );
+
+    expect(result).toEqual({ data: null, error: "Unauthorized" });
   });
 
   it("returns { data: null, error } when supabase returns an error", async () => {

@@ -122,7 +122,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
       </div>
 
       {/* Split-pane content */}
-      <div className="flex flex-1 min-h-0 relative bg-[#F8F9FA] dark:bg-[#121212]">
+      <div className="flex flex-1 min-h-0 relative bg-muted/30">
         {/* Outline pane */}
         <div ref={outlineRef}>
           <OutlinePanel

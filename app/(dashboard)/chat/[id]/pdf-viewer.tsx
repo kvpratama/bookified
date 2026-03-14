@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import { useState, useCallback } from "react";
+import { Document, Page } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+import "@/lib/pdf-worker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,11 +20,6 @@ import { useDebouncedCallback } from "@/lib/hooks/use-debounce-callback";
 import { useKeyboardNavigation } from "@/lib/hooks/use-keyboard-navigation";
 import { updateDocumentProgress } from "./actions";
 import type { ChatDocument } from "./types";
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
 
 const ZOOM_STEP = 0.15;
 const MIN_SCALE = 0.5;
@@ -78,10 +74,6 @@ export function PdfViewer({
     setCurrentPage(Math.max(1, Math.min(externalPage, numPages)));
   }
 
-  useEffect(() => {
-    updateDocumentProgress(doc.id, currentPage, new Date().toISOString());
-  }, [doc.id, currentPage]);
-
   const zoomIn = useCallback(() => {
     setScale((s) => Math.min(s + ZOOM_STEP, MAX_SCALE));
   }, []);
@@ -133,7 +125,7 @@ export function PdfViewer({
   const fileUrl = getBlobUrl(doc.blob_url);
 
   return (
-    <div className="relative flex flex-col h-full bg-[#E5E5E5]/40 dark:bg-black/20">
+    <div className="relative flex flex-col h-full bg-muted/40">
       {/* PDF content */}
       <ScrollArea className="flex-1">
         <div

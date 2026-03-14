@@ -1,17 +1,13 @@
 "use client";
 
-import { Document, Outline, pdfjs } from "react-pdf";
+import { Document, Outline } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+import "@/lib/pdf-worker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, getBlobUrl } from "@/lib/utils";
 import type { ChatDocument } from "./types";
 import "./outline-panel.css";
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
 
 interface OutlinePanelProps {
   document: ChatDocument;
@@ -44,7 +40,7 @@ export function OutlinePanel({
     <div
       data-testid="outline-panel"
       className={cn(
-        "h-full border-r border-border/40 bg-[#FDFCFB] dark:bg-[#1A1816] transition-all duration-500 ease-in-out overflow-hidden",
+        "h-full border-r border-border/40 bg-card transition-all duration-500 ease-in-out overflow-hidden",
         visible ? "w-[250px]" : "w-0",
       )}
     >
