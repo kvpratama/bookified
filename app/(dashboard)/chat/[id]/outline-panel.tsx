@@ -40,7 +40,7 @@ export function OutlinePanel({
     <div
       data-testid="outline-panel"
       className={cn(
-        "h-full border-r border-border/40 bg-card transition-all duration-500 ease-in-out overflow-hidden",
+        "h-full border-r border-border/40 bg-card transition-all duration-400 ease-in-out overflow-hidden",
         visible ? "w-[250px]" : "w-0",
       )}
     >

@@ -27,6 +27,7 @@ import type { ChatDocument } from "./types";
 const ZOOM_STEP = 0.15;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
+const MAX_PAGE_WIDTH = 900;
 
 function clampPage(page: number, totalPages?: number): number {
   const clamped = Math.max(1, page);
@@ -64,6 +65,10 @@ export function PdfViewer({
   const [containerWidth, setContainerWidth] = useState<number | undefined>();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const debouncedSetContainerWidth = useDebouncedCallback<[number]>((width) => {
+    setContainerWidth(width);
+  }, 400);
+
   // Measure container width
   useEffect(() => {
     if (!containerRef.current) return;
@@ -71,13 +76,18 @@ export function PdfViewer({
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (entry) {
-        setContainerWidth(entry.contentRect.width);
+        // Use immediate update for the FIRST load, then debounce
+        if (containerWidth === undefined) {
+          setContainerWidth(entry.contentRect.width);
+        } else {
+          debouncedSetContainerWidth(entry.contentRect.width);
+        }
       }
     });
 
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [containerWidth, debouncedSetContainerWidth]);
 
   const onDocumentLoadSuccess = useCallback(
     ({ numPages: total }: { numPages: number }) => {
@@ -217,6 +227,7 @@ export function PdfViewer({
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
             loading={null}
+            className="[&_.react-pdf__Page]:w-full! [&_.react-pdf__Page_canvas]:w-full! [&_.react-pdf__Page_canvas]:h-auto!"
             error={
               <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
                 <p className="text-sm text-destructive font-medium">
@@ -228,16 +239,38 @@ export function PdfViewer({
               </div>
             }
           >
-            <Page
-              pageNumber={currentPage}
-              width={containerWidth ? containerWidth * scale : undefined}
-              className="bg-card shadow-2xl ring-1 ring-border rounded-sm overflow-hidden transition-transform duration-200"
-              loading={
-                <div className="flex items-center justify-center py-32 min-w-[600px] bg-card ring-1 ring-border rounded-sm">
-                  <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
-                </div>
-              }
-            />
+            <div
+              className="transition-all duration-200 ease-in-out"
+              style={{
+                width: containerWidth ? "100%" : "auto",
+                maxWidth: containerWidth
+                  ? `${Math.min(containerWidth, MAX_PAGE_WIDTH) * scale}px`
+                  : "none",
+                height: "auto",
+              }}
+            >
+              <Page
+                pageNumber={currentPage}
+                width={
+                  containerWidth
+                    ? Math.min(containerWidth, MAX_PAGE_WIDTH) * scale
+                    : undefined
+                }
+                className="bg-card shadow-2xl ring-1 ring-border rounded-sm overflow-hidden"
+                loading={
+                  <div
+                    className="flex items-center justify-center py-32 bg-card ring-1 ring-border rounded-sm"
+                    style={{
+                      width: containerWidth
+                        ? Math.min(containerWidth, MAX_PAGE_WIDTH)
+                        : 600,
+                    }}
+                  >
+                    <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                  </div>
+                }
+              />
+            </div>
           </Document>
         </div>
       </ScrollArea>

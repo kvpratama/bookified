@@ -184,11 +184,10 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
 
         {/* PDF viewer */}
         <div
-          className={
-            chatCollapsed
-              ? "flex-1 min-w-0 h-full overflow-hidden transition-all duration-500 ease-in-out"
-              : "flex-1 md:flex-[3] min-w-0 h-full overflow-hidden transition-all duration-500 ease-in-out hidden md:block"
-          }
+          className={cn(
+            "flex-1 min-w-0 h-full overflow-hidden transition-all duration-400 ease-in-out",
+            !chatCollapsed && "hidden md:block",
+          )}
         >
           <PdfViewer document={doc} externalPage={selectedPage} />
         </div>
@@ -196,7 +195,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
         {/* Chat panel */}
         <div
           className={cn(
-            "h-full transition-all duration-500 ease-in-out overflow-hidden shrink-0 z-10",
+            "h-full transition-[width] duration-400 ease-in-out shrink-0 z-10 overflow-hidden",
             chatCollapsed
               ? "w-0 border-l-0"
               : "w-full md:w-[400px] border-l border-border/50 shadow-2xl md:shadow-none bg-background absolute md:relative right-0 top-0 bottom-0",
