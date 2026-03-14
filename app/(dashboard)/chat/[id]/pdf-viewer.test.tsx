@@ -182,3 +182,149 @@ describe("PdfViewer - Page Jump", () => {
     });
   });
 });
+
+describe("PdfViewer - Hover Navigation Buttons", () => {
+  beforeEach(() => {
+    mockUpdateDocumentProgress.mockClear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("shows navigation buttons when hovering over PDF viewer area", async () => {
+    render(<PdfViewer document={mockDocument} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+    });
+
+    const viewerArea = screen.getByTestId("pdf-viewer-area");
+
+    // Buttons should not be visible initially
+    expect(
+      screen.queryByRole("button", { name: /previous page hover/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /next page hover/i }),
+    ).not.toBeInTheDocument();
+
+    // Hover over the viewer area
+    fireEvent.mouseEnter(viewerArea);
+
+    // Buttons should now be visible
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /previous page hover/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /next page hover/i }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("hides navigation buttons when mouse leaves PDF viewer area", async () => {
+    render(<PdfViewer document={mockDocument} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+    });
+
+    const viewerArea = screen.getByTestId("pdf-viewer-area");
+
+    // Hover to show buttons
+    fireEvent.mouseEnter(viewerArea);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /previous page hover/i }),
+      ).toBeInTheDocument();
+    });
+
+    // Mouse leaves
+    fireEvent.mouseLeave(viewerArea);
+
+    // Buttons should be hidden
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: /previous page hover/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("navigates to previous page when clicking left hover button", async () => {
+    render(<PdfViewer document={mockDocument} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+    });
+
+    const viewerArea = screen.getByTestId("pdf-viewer-area");
+    fireEvent.mouseEnter(viewerArea);
+
+    const prevButton = await screen.findByRole("button", {
+      name: /previous page hover/i,
+    });
+    fireEvent.click(prevButton);
+
+    // Should navigate from page 5 to page 4
+    await waitFor(() => {
+      expect(screen.getByText(/4\s*\/\s*50/)).toBeInTheDocument();
+    });
+  });
+
+  it("navigates to next page when clicking right hover button", async () => {
+    render(<PdfViewer document={mockDocument} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+    });
+
+    const viewerArea = screen.getByTestId("pdf-viewer-area");
+    fireEvent.mouseEnter(viewerArea);
+
+    const nextButton = await screen.findByRole("button", {
+      name: /next page hover/i,
+    });
+    fireEvent.click(nextButton);
+
+    // Should navigate from page 5 to page 6
+    await waitFor(() => {
+      expect(screen.getByText(/6\s*\/\s*50/)).toBeInTheDocument();
+    });
+  });
+
+  it("disables left hover button on first page", async () => {
+    const firstPageDoc = { ...mockDocument, current_page: 1 };
+    render(<PdfViewer document={firstPageDoc} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+    });
+
+    const viewerArea = screen.getByTestId("pdf-viewer-area");
+    fireEvent.mouseEnter(viewerArea);
+
+    const prevButton = await screen.findByRole("button", {
+      name: /previous page hover/i,
+    });
+    expect(prevButton).toBeDisabled();
+  });
+
+  it("disables right hover button on last page", async () => {
+    const lastPageDoc = { ...mockDocument, current_page: 50 };
+    render(<PdfViewer document={lastPageDoc} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+    });
+
+    const viewerArea = screen.getByTestId("pdf-viewer-area");
+    fireEvent.mouseEnter(viewerArea);
+
+    const nextButton = await screen.findByRole("button", {
+      name: /next page hover/i,
+    });
+    expect(nextButton).toBeDisabled();
+  });
+});

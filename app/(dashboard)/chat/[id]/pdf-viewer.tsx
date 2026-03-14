@@ -36,6 +36,7 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInputValue, setPageInputValue] = useState("");
+  const [showHoverNav, setShowHoverNav] = useState(false);
 
   const onDocumentLoadSuccess = useCallback(
     ({ numPages: total }: { numPages: number }) => {
@@ -124,8 +125,11 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
       {/* PDF content */}
       <ScrollArea className="flex-1">
         <div
+          data-testid="pdf-viewer-area"
+          onMouseEnter={() => setShowHoverNav(true)}
+          onMouseLeave={() => setShowHoverNav(false)}
           className={cn(
-            "flex flex-col items-center justify-center py-12 px-6 min-h-full",
+            "flex flex-col items-center justify-center py-12 px-6 min-h-full relative",
             isLoading && "items-center justify-center",
           )}
         >
@@ -165,6 +169,32 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
               }
             />
           </Document>
+
+          {/* Hover Navigation Buttons */}
+          {showHoverNav && !isLoading && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="absolute left-4 top-1/2 -translate-y-1/2 h-20 w-10 rounded-md bg-background/80 hover:bg-background/95 backdrop-blur-sm border border-border/40 shadow-lg text-muted-foreground hover:text-foreground transition-all duration-300 animate-in fade-in slide-in-from-left-2"
+                aria-label="Previous page hover"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage >= numPages}
+                className="absolute right-4 top-1/2 -translate-y-1/2 h-20 w-10 rounded-md bg-background/80 hover:bg-background/95 backdrop-blur-sm border border-border/40 shadow-lg text-muted-foreground hover:text-foreground transition-all duration-300 animate-in fade-in slide-in-from-right-2"
+                aria-label="Next page hover"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            </>
+          )}
         </div>
       </ScrollArea>
 
