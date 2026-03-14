@@ -34,6 +34,8 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   const [currentPage, setCurrentPage] = useState(doc.current_page || 1);
   const [scale, setScale] = useState(1.0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditingPage, setIsEditingPage] = useState(false);
+  const [pageInputValue, setPageInputValue] = useState("");
 
   const onDocumentLoadSuccess = useCallback(
     ({ numPages: total }: { numPages: number }) => {
@@ -73,6 +75,41 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
 
   const zoomOut = useCallback(() => {
     setScale((s) => Math.max(s - ZOOM_STEP, MIN_SCALE));
+  }, []);
+
+  const handlePageClick = useCallback(() => {
+    setIsEditingPage(true);
+    setPageInputValue(String(currentPage));
+  }, [currentPage]);
+
+  const handlePageInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setPageInputValue(e.target.value);
+    },
+    [],
+  );
+
+  const handlePageInputSubmit = useCallback(() => {
+    const pageNum = parseInt(pageInputValue, 10);
+    if (!isNaN(pageNum)) {
+      goToPage(pageNum);
+    }
+    setIsEditingPage(false);
+  }, [pageInputValue, goToPage]);
+
+  const handlePageInputKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        handlePageInputSubmit();
+      } else if (e.key === "Escape") {
+        setIsEditingPage(false);
+      }
+    },
+    [handlePageInputSubmit],
+  );
+
+  const handlePageInputBlur = useCallback(() => {
+    setIsEditingPage(false);
   }, []);
 
   useKeyboardNavigation({
@@ -146,9 +183,24 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
               <ChevronLeft className="w-4 h-4" />
               <span className="sr-only">Previous page</span>
             </Button>
-            <span className="text-xs font-semibold tabular-nums min-w-[80px] text-center select-none text-foreground/80 tracking-wide">
-              {currentPage} / {numPages}
-            </span>
+            {isEditingPage ? (
+              <input
+                type="number"
+                value={pageInputValue}
+                onChange={handlePageInputChange}
+                onKeyDown={handlePageInputKeyDown}
+                onBlur={handlePageInputBlur}
+                autoFocus
+                className="text-xs font-semibold tabular-nums w-[80px] text-center bg-transparent border-b border-foreground/20 focus:border-foreground/40 outline-none text-foreground/80 tracking-wide transition-colors"
+              />
+            ) : (
+              <span
+                onClick={handlePageClick}
+                className="text-xs font-semibold tabular-nums min-w-[80px] text-center select-none text-foreground/80 tracking-wide cursor-pointer hover:text-foreground hover:underline decoration-dotted underline-offset-4 transition-colors"
+              >
+                {currentPage} / {numPages}
+              </span>
+            )}
             <Button
               variant="ghost"
               size="icon"
