@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ArrowLeft, FileText, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatBytes, formatDocumentName } from "@/lib/utils";
 import { ChatPanel } from "./chat-panel";
-import { OutlinePanel } from "./outline-panel";
 import type { ChatDocument } from "./types";
 
 const PdfViewer = dynamic(
@@ -25,14 +24,57 @@ const PdfViewer = dynamic(
   },
 );
 
+const OutlinePanel = dynamic(
+  () =>
+    import("./outline-panel").then((mod) => ({ default: mod.OutlinePanel })),
+  { ssr: false },
+);
+
 export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
   const router = useRouter();
-  const [chatCollapsed, setChatCollapsed] = useState(false);
-  const [outlineVisible, setOutlineVisible] = useState(false);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [chatCollapsed, setChatCollapsed] = useState(
+    searchParams.get("chat") === "collapsed",
+  );
+  const [outlineVisible, setOutlineVisible] = useState(
+    searchParams.get("outline") === "true",
+  );
   const [hasOutline, setHasOutline] = useState(false);
   const [selectedPage, setSelectedPage] = useState<number | undefined>();
   const outlineRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
+
+  const updateUrl = useCallback(
+    (params: Record<string, string | null>) => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === null) {
+          nextParams.delete(key);
+        } else {
+          nextParams.set(key, value);
+        }
+      });
+
+      const queryString = nextParams.toString();
+      const url = `${pathname}${queryString ? `?${queryString}` : ""}`;
+      router.replace(url, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  const toggleChat = () => {
+    const nextState = !chatCollapsed;
+    setChatCollapsed(nextState);
+    updateUrl({ chat: nextState ? "collapsed" : null });
+  };
+
+  const toggleOutline = () => {
+    const nextState = !outlineVisible;
+    setOutlineVisible(nextState);
+    updateUrl({ outline: nextState ? "true" : null });
+  };
 
   const handlePageSelect = (pageNumber: number) => {
     setSelectedPage(pageNumber);
@@ -53,12 +95,13 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
         !toggleButtonRef.current.contains(target)
       ) {
         setOutlineVisible(false);
+        updateUrl({ outline: null });
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [outlineVisible]);
+  }, [outlineVisible, updateUrl]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
@@ -78,7 +121,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
             ref={toggleButtonRef}
             variant="ghost"
             size="icon"
-            onClick={() => setOutlineVisible((prev) => !prev)}
+            onClick={toggleOutline}
             className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground rounded-full"
             aria-label="Toggle outline"
           >
@@ -155,7 +198,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
           <ChatPanel
             document={doc}
             collapsed={chatCollapsed}
-            onToggle={() => setChatCollapsed((prev) => !prev)}
+            onToggle={toggleChat}
           />
         </div>
       </div>

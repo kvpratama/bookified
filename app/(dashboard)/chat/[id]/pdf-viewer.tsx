@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Document, Page } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "@/lib/pdf-worker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { getBlobUrl } from "@/lib/utils";
+import { useDebouncedCallback } from "@/lib/hooks/use-debounce-callback";
+import { useKeyboardNavigation } from "@/lib/hooks/use-keyboard-navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,10 +19,7 @@ import {
   ZoomOut,
   Loader2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { getBlobUrl } from "@/lib/utils";
-import { useDebouncedCallback } from "@/lib/hooks/use-debounce-callback";
-import { useKeyboardNavigation } from "@/lib/hooks/use-keyboard-navigation";
+// ... (imports)
 import { updateDocumentProgress } from "./actions";
 import type { ChatDocument } from "./types";
 
@@ -32,8 +34,23 @@ export function PdfViewer({
   document: ChatDocument;
   externalPage?: number;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [numPages, setNumPages] = useState<number>(0);
-  const [currentPage, setCurrentPage] = useState(doc.current_page || 1);
+
+  // Initialize from URL or document
+  const getInitialPage = () => {
+    const urlPage = searchParams.get("page");
+    if (urlPage) {
+      const parsed = parseInt(urlPage, 10);
+      if (!isNaN(parsed)) return parsed;
+    }
+    return doc.current_page || 1;
+  };
+
+  const [currentPage, setCurrentPage] = useState(getInitialPage());
   const [scale, setScale] = useState(1.0);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingPage, setIsEditingPage] = useState(false);
@@ -59,20 +76,34 @@ export function PdfViewer({
     1000,
   );
 
+  const updateUrl = useCallback(
+    (page: number) => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.set("page", String(page));
+      router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
   const goToPage = useCallback(
     (page: number) => {
       const newPage = Math.max(1, Math.min(page, numPages));
       setCurrentPage(newPage);
       debouncedUpdateProgress(newPage);
+      updateUrl(newPage);
     },
-    [numPages, debouncedUpdateProgress],
+    [numPages, debouncedUpdateProgress, updateUrl],
   );
 
-  // Handle external page navigation during render (not in effect)
-  if (externalPage && externalPage !== currentPage && numPages > 0) {
-    // This is safe because it only happens once per externalPage change
-    setCurrentPage(Math.max(1, Math.min(externalPage, numPages)));
-  }
+  // Handle external page navigation
+  useEffect(() => {
+    if (externalPage && externalPage !== currentPage && numPages > 0) {
+      // Use a microtask to avoid synchronous setState lint error
+      Promise.resolve().then(() => {
+        goToPage(externalPage);
+      });
+    }
+  }, [externalPage, numPages, currentPage, goToPage]);
 
   const zoomIn = useCallback(() => {
     setScale((s) => Math.min(s + ZOOM_STEP, MAX_SCALE));

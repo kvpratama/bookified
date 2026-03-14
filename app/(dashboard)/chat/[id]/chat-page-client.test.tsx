@@ -4,8 +4,18 @@ import type { ChatDocument } from "./types";
 
 // Mock next/navigation
 const mockBack = vi.fn();
+const mockPush = vi.fn();
+const mockReplace = vi.fn();
+let mockSearchParams = new URLSearchParams();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({
+    back: mockBack,
+    push: mockPush,
+    replace: mockReplace,
+  }),
+  useSearchParams: () => mockSearchParams,
+  usePathname: () => "/chat/doc-1",
 }));
 
 // Mock next/link
@@ -53,12 +63,28 @@ vi.mock("./pdf-viewer", () => ({
   },
 }));
 
-// Mock next/dynamic to skip lazy loading — return the PdfViewer stub synchronously
+// Mock next/dynamic to be synchronous for testing
 vi.mock("next/dynamic", () => ({
-  default: () =>
-    function PdfViewerStub(props: { document: { id: string } }) {
-      return <div data-testid="pdf-viewer">{props.document.id}</div>;
-    },
+  default: (
+    loader: () => Promise<{
+      default: React.ComponentType;
+      PdfViewer: React.ComponentType;
+      OutlinePanel: React.ComponentType;
+    }>,
+  ) => {
+    let Resolved: React.ComponentType | null = null;
+    const promise = loader().then((mod) => {
+      Resolved = mod.default || mod.PdfViewer || mod.OutlinePanel;
+    });
+
+    return function DynamicStub(props: Record<string, unknown>) {
+      if (!Resolved) {
+        throw promise;
+      }
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      return <Resolved {...(props as any)} />;
+    };
+  },
 }));
 
 // Mock ChatPanel
@@ -72,7 +98,7 @@ vi.mock("./chat-panel", () => ({
     document: object;
   }) => (
     <div data-testid="chat-panel" data-collapsed={collapsed}>
-      <button onClick={onToggle}>toggle</button>
+      <button onClick={onToggle}>toggle-chat</button>
     </div>
   ),
 }));
@@ -137,9 +163,9 @@ describe("ChatPageClient", () => {
     cleanup();
   });
 
-  it("renders the formatted document name", () => {
+  it("renders the formatted document name", async () => {
     render(<ChatPageClient document={mockDocument} />);
-    expect(screen.getByText("Test Document")).toBeInTheDocument();
+    expect(await screen.findByText("Test Document")).toBeInTheDocument();
   });
 
   it("renders the file size using formatBytes", () => {
@@ -178,27 +204,27 @@ describe("ChatPageClient", () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it("renders PdfViewer stub", () => {
+  it("renders PdfViewer stub", async () => {
     render(<ChatPageClient document={mockDocument} />);
-    expect(screen.getByTestId("pdf-viewer")).toBeInTheDocument();
+    expect(await screen.findByTestId("pdf-viewer")).toBeInTheDocument();
     expect(screen.getByTestId("pdf-viewer")).toHaveTextContent("doc-1");
   });
 
-  it("renders ChatPanel stub", () => {
+  it("renders ChatPanel stub", async () => {
     render(<ChatPageClient document={mockDocument} />);
-    expect(screen.getByTestId("chat-panel")).toBeInTheDocument();
+    expect(await screen.findByTestId("chat-panel")).toBeInTheDocument();
   });
 
-  it("toggling chat collapsed state via ChatPanel's onToggle changes layout", () => {
+  it("toggling chat collapsed state via ChatPanel's onToggle changes layout", async () => {
     render(<ChatPageClient document={mockDocument} />);
-    const chatPanel = screen.getByTestId("chat-panel");
+    const chatPanel = await screen.findByTestId("chat-panel");
 
     expect(chatPanel).toHaveAttribute("data-collapsed", "false");
 
-    fireEvent.click(screen.getByRole("button", { name: /toggle/i }));
+    fireEvent.click(screen.getByRole("button", { name: /toggle-chat/i }));
     expect(chatPanel).toHaveAttribute("data-collapsed", "true");
 
-    fireEvent.click(screen.getByRole("button", { name: /toggle/i }));
+    fireEvent.click(screen.getByRole("button", { name: /toggle-chat/i }));
     expect(chatPanel).toHaveAttribute("data-collapsed", "false");
   });
 
@@ -273,5 +299,50 @@ describe("ChatPageClient", () => {
 
     // Outline should close
     expect(outlinePanel).toHaveAttribute("data-visible", "false");
+  });
+
+  describe("URL Sync", () => {
+    it("initializes chatCollapsed from URL search params", async () => {
+      mockSearchParams = new URLSearchParams("chat=collapsed");
+      render(<ChatPageClient document={mockDocument} />);
+
+      const chatPanel = await screen.findByTestId("chat-panel");
+      expect(chatPanel).toHaveAttribute("data-collapsed", "true");
+    });
+
+    it("initializes outlineVisible from URL search params", async () => {
+      mockSearchParams = new URLSearchParams("outline=true");
+      render(<ChatPageClient document={mockDocument} />);
+
+      const outlinePanel = await screen.findByTestId("outline-panel");
+      expect(outlinePanel).toHaveAttribute("data-visible", "true");
+    });
+
+    it("updates URL when toggling chat panel", () => {
+      mockSearchParams = new URLSearchParams();
+      render(<ChatPageClient document={mockDocument} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /toggle/i }));
+
+      expect(mockReplace).toHaveBeenCalledWith(
+        expect.stringContaining("chat=collapsed"),
+        expect.any(Object),
+      );
+    });
+
+    it("updates URL when toggling outline panel", async () => {
+      mockSearchParams = new URLSearchParams();
+      render(<ChatPageClient document={mockDocument} />);
+
+      const toggleButton = await screen.findByRole("button", {
+        name: /outline/i,
+      });
+      fireEvent.click(toggleButton);
+
+      expect(mockReplace).toHaveBeenCalledWith(
+        expect.stringContaining("outline=true"),
+        expect.any(Object),
+      );
+    });
   });
 });
