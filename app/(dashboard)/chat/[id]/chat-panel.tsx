@@ -218,7 +218,7 @@ export function ChatPanel({
 
       {/* Input */}
       <div className="p-4 bg-background/95 backdrop-blur-xl border-t border-border/40 shrink-0 relative z-20 shadow-[0_-1px_3px_0_rgb(0,0,0,0.02)]">
-        <div className="relative flex items-center shadow-sm rounded-full bg-muted/30 border border-border/50 transition-all focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/30 focus-within:bg-background focus-within:shadow-md">
+        <div className="relative flex items-center overflow-hidden shadow-sm rounded-full bg-muted/30 border border-border/50 transition-all focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/30 focus-within:bg-background focus-within:shadow-md">
           <Input
             ref={inputRef}
             value={inputValue}
@@ -226,7 +226,7 @@ export function ChatPanel({
             onKeyDown={handleKeyDown}
             placeholder="Ask about this document…"
             aria-label="Chat message input"
-            className="pr-14 pl-5 py-6 text-[14px] bg-transparent border-none focus-visible:ring-0 shadow-none font-sans"
+            className="pr-14 pl-5 py-6 text-[14px] bg-transparent dark:bg-transparent border-none focus-visible:ring-0 shadow-none font-sans rounded-full"
           />
           <Button
             size="icon"
