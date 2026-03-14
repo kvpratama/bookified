@@ -23,6 +23,7 @@ export function ChatPanel({
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const replyTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const { chats, addMessage } = useAppStore();
   const currentChat = useMemo(() => chats[doc.id] || [], [chats, doc.id]);
@@ -34,6 +35,15 @@ export function ChatPanel({
         scrollViewportRef.current.scrollHeight;
     }
   }, [currentChat, isTyping, collapsed]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (replyTimerRef.current) {
+        clearTimeout(replyTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleSendMessage = useCallback(() => {
     if (!inputValue.trim() || isTyping) return;
@@ -51,7 +61,7 @@ export function ChatPanel({
 
     setIsTyping(true);
 
-    setTimeout(
+    replyTimerRef.current = setTimeout(
       () => {
         setIsTyping(false);
 
@@ -101,7 +111,7 @@ export function ChatPanel({
       <Button
         onClick={onToggle}
         size="icon"
-        className="fixed right-6 bottom-6 z-50 h-14 w-14 rounded-full shadow-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-105"
+        className="fixed right-6 bottom-24 md:bottom-6 z-50 h-14 w-14 rounded-full shadow-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-105"
         aria-label="Open chat"
       >
         <MessageSquare className="w-6 h-6" />
@@ -110,14 +120,9 @@ export function ChatPanel({
   }
 
   return (
-    <div
-      className={cn(
-        "flex flex-col h-full bg-background/50",
-        collapsed && "hidden",
-      )}
-    >
+    <div className="flex flex-col h-full bg-background/50 min-w-[320px] md:min-w-[400px]">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-xl shrink-0 z-10 shadow-[0_1px_3px_0_rgb(0,0,0,0.02)]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-xl shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-2 min-w-0">
           <Sparkles className="w-4 h-4 text-primary shrink-0 opacity-80" />
           <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground/80 truncate">

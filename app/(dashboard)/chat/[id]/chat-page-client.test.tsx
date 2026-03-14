@@ -67,12 +67,12 @@ vi.mock("./pdf-viewer", () => ({
 vi.mock("next/dynamic", () => ({
   default: (
     loader: () => Promise<{
-      default: React.ComponentType;
-      PdfViewer: React.ComponentType;
-      OutlinePanel: React.ComponentType;
+      default: React.ComponentType<Record<string, unknown>>;
+      PdfViewer: React.ComponentType<Record<string, unknown>>;
+      OutlinePanel: React.ComponentType<Record<string, unknown>>;
     }>,
   ) => {
-    let Resolved: React.ComponentType | null = null;
+    let Resolved: React.ComponentType<Record<string, unknown>> | null = null;
     const promise = loader().then((mod) => {
       Resolved = mod.default || mod.PdfViewer || mod.OutlinePanel;
     });
@@ -81,8 +81,7 @@ vi.mock("next/dynamic", () => ({
       if (!Resolved) {
         throw promise;
       }
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      return <Resolved {...(props as any)} />;
+      return <Resolved {...props} />;
     };
   },
 }));
@@ -199,6 +198,10 @@ describe("ChatPageClient", () => {
   });
 
   it("calls router.back() when back button is clicked", () => {
+    Object.defineProperty(window, "history", {
+      value: { length: 2 },
+      writable: true,
+    });
     render(<ChatPageClient document={mockDocument} />);
     fireEvent.click(screen.getByRole("button", { name: /back/i }));
     expect(mockBack).toHaveBeenCalledTimes(1);
@@ -219,13 +222,13 @@ describe("ChatPageClient", () => {
     render(<ChatPageClient document={mockDocument} />);
     const chatPanel = await screen.findByTestId("chat-panel");
 
-    expect(chatPanel).toHaveAttribute("data-collapsed", "false");
-
-    fireEvent.click(screen.getByRole("button", { name: /toggle-chat/i }));
     expect(chatPanel).toHaveAttribute("data-collapsed", "true");
 
     fireEvent.click(screen.getByRole("button", { name: /toggle-chat/i }));
     expect(chatPanel).toHaveAttribute("data-collapsed", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: /toggle-chat/i }));
+    expect(chatPanel).toHaveAttribute("data-collapsed", "true");
   });
 
   it("renders outline panel hidden by default", () => {
@@ -325,7 +328,7 @@ describe("ChatPageClient", () => {
       fireEvent.click(screen.getByRole("button", { name: /toggle/i }));
 
       expect(mockReplace).toHaveBeenCalledWith(
-        expect.stringContaining("chat=collapsed"),
+        expect.stringContaining("chat=expanded"),
         expect.any(Object),
       );
     });

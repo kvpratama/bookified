@@ -5,6 +5,11 @@ export function useDebouncedCallback<Args extends unknown[]>(
   delay: number = 1000,
 ): (...args: Args) => void {
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const latestCallbackRef = useRef(callback);
+
+  useEffect(() => {
+    latestCallbackRef.current = callback;
+  }, [callback]);
 
   useEffect(() => {
     return () => {
@@ -20,9 +25,9 @@ export function useDebouncedCallback<Args extends unknown[]>(
         clearTimeout(timeoutRef.current);
       }
       timeoutRef.current = setTimeout(() => {
-        callback(...args);
+        latestCallbackRef.current(...args);
       }, delay);
     },
-    [callback, delay],
+    [delay],
   );
 }

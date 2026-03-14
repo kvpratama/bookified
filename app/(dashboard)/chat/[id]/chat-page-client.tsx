@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ArrowLeft, FileText, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatBytes, formatDocumentName } from "@/lib/utils";
+import { cn, formatBytes, formatDocumentName } from "@/lib/utils";
 import { ChatPanel } from "./chat-panel";
 import type { ChatDocument } from "./types";
 
@@ -36,7 +36,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
   const searchParams = useSearchParams();
 
   const [chatCollapsed, setChatCollapsed] = useState(
-    searchParams.get("chat") === "collapsed",
+    searchParams.get("chat") === "expanded" ? false : true,
   );
   const [outlineVisible, setOutlineVisible] = useState(
     searchParams.get("outline") === "true",
@@ -67,7 +67,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
   const toggleChat = () => {
     const nextState = !chatCollapsed;
     setChatCollapsed(nextState);
-    updateUrl({ chat: nextState ? "collapsed" : null });
+    updateUrl({ chat: nextState ? null : "expanded" });
   };
 
   const toggleOutline = () => {
@@ -110,7 +110,13 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => router.back()}
+          onClick={() => {
+            if (window.history.length > 1) {
+              router.back();
+            } else {
+              router.push("/dashboard");
+            }
+          }}
           className="shrink-0 -ml-2 h-9 w-9 text-muted-foreground hover:text-foreground rounded-full"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -181,7 +187,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
           className={
             chatCollapsed
               ? "flex-1 min-w-0 h-full overflow-hidden transition-all duration-500 ease-in-out"
-              : "flex-1 min-w-0 h-full overflow-hidden transition-all duration-500 ease-in-out hidden md:block"
+              : "flex-1 md:flex-[3] min-w-0 h-full overflow-hidden transition-all duration-500 ease-in-out hidden md:block"
           }
         >
           <PdfViewer document={doc} externalPage={selectedPage} />
@@ -189,11 +195,12 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
 
         {/* Chat panel */}
         <div
-          className={
+          className={cn(
+            "h-full transition-all duration-500 ease-in-out overflow-hidden shrink-0 z-10",
             chatCollapsed
-              ? "w-0 transition-all duration-500 ease-in-out border-l-0"
-              : "w-full md:w-[380px] lg:w-[420px] shrink-0 h-full transition-all duration-500 ease-in-out border-l border-border/50 shadow-2xl md:shadow-none bg-background absolute md:relative right-0 top-0 bottom-0 z-10"
-          }
+              ? "w-0 border-l-0"
+              : "w-full md:w-[400px] border-l border-border/50 shadow-2xl md:shadow-none bg-background absolute md:relative right-0 top-0 bottom-0",
+          )}
         >
           <ChatPanel
             document={doc}

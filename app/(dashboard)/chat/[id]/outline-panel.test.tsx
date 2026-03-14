@@ -98,9 +98,7 @@ describe("OutlinePanel", () => {
       />,
     );
 
-    await screen.findByTestId("pdf-outline");
-
-    expect(onOutlineLoad).toHaveBeenCalledWith(true);
+    await vi.waitFor(() => expect(onOutlineLoad).toHaveBeenCalledWith(true));
   });
 
   it("is hidden when visible prop is false", () => {
@@ -190,9 +188,6 @@ describe("OutlinePanel", () => {
       />,
     );
 
-    // Wait for error to be processed
-    await screen.findByTestId("pdf-outline-error");
-
-    expect(onOutlineLoad).toHaveBeenCalledWith(false);
+    await vi.waitFor(() => expect(onOutlineLoad).toHaveBeenCalledWith(false));
   });
 });

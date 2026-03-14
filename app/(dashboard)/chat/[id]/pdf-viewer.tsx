@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Document, Page } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -19,6 +19,7 @@ import {
   ZoomOut,
   Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 // ... (imports)
 import { updateDocumentProgress } from "./actions";
 import type { ChatDocument } from "./types";
@@ -26,6 +27,11 @@ import type { ChatDocument } from "./types";
 const ZOOM_STEP = 0.15;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
+
+function clampPage(page: number, totalPages?: number): number {
+  const clamped = Math.max(1, page);
+  return totalPages && totalPages > 0 ? Math.min(clamped, totalPages) : clamped;
+}
 
 export function PdfViewer({
   document: doc,
@@ -45,9 +51,9 @@ export function PdfViewer({
     const urlPage = searchParams.get("page");
     if (urlPage) {
       const parsed = parseInt(urlPage, 10);
-      if (!isNaN(parsed)) return parsed;
+      if (!isNaN(parsed)) return clampPage(parsed);
     }
-    return doc.current_page || 1;
+    return clampPage(doc.current_page || 1);
   };
 
   const [currentPage, setCurrentPage] = useState(getInitialPage());
@@ -55,11 +61,28 @@ export function PdfViewer({
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInputValue, setPageInputValue] = useState("");
-  const [showHoverNav, setShowHoverNav] = useState(false);
+  const [containerWidth, setContainerWidth] = useState<number | undefined>();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Measure container width
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const onDocumentLoadSuccess = useCallback(
     ({ numPages: total }: { numPages: number }) => {
       setNumPages(total);
+      setCurrentPage((p) => clampPage(p, total));
       setIsLoading(false);
     },
     [],
@@ -70,8 +93,19 @@ export function PdfViewer({
   }, []);
 
   const debouncedUpdateProgress = useDebouncedCallback<[number]>(
-    (page: number) => {
-      updateDocumentProgress(doc.id, page, new Date().toISOString());
+    async (page: number) => {
+      try {
+        const { error } = await updateDocumentProgress(
+          doc.id,
+          page,
+          new Date().toISOString(),
+        );
+        if (error) {
+          toast.error("Failed to save reading progress");
+        }
+      } catch {
+        toast.error("Failed to save reading progress");
+      }
     },
     1000,
   );
@@ -87,7 +121,7 @@ export function PdfViewer({
 
   const goToPage = useCallback(
     (page: number) => {
-      const newPage = Math.max(1, Math.min(page, numPages));
+      const newPage = clampPage(page, numPages > 0 ? numPages : undefined);
       setCurrentPage(newPage);
       debouncedUpdateProgress(newPage);
       updateUrl(newPage);
@@ -156,13 +190,14 @@ export function PdfViewer({
   const fileUrl = getBlobUrl(doc.blob_url);
 
   return (
-    <div className="relative flex flex-col h-full bg-muted/40">
+    <div
+      className="relative flex flex-col h-full bg-muted/40 group overflow-hidden"
+      ref={containerRef}
+    >
       {/* PDF content */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" orientation="both">
         <div
           data-testid="pdf-viewer-area"
-          onMouseEnter={() => setShowHoverNav(true)}
-          onMouseLeave={() => setShowHoverNav(false)}
           className={cn(
             "flex flex-col items-center justify-center py-12 px-6 min-h-full relative",
             isLoading && "items-center justify-center",
@@ -195,43 +230,51 @@ export function PdfViewer({
           >
             <Page
               pageNumber={currentPage}
-              scale={scale}
-              className="bg-white shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.6)] ring-1 ring-black/5 dark:ring-white/10 rounded-sm overflow-hidden [&_canvas]:w-full! [&_canvas]:h-auto! transition-transform duration-200"
+              width={containerWidth ? containerWidth * scale : undefined}
+              className="bg-card shadow-2xl ring-1 ring-border rounded-sm overflow-hidden transition-transform duration-200"
               loading={
-                <div className="flex items-center justify-center py-32 min-w-[600px] bg-white ring-1 ring-black/5 rounded-sm">
+                <div className="flex items-center justify-center py-32 min-w-[600px] bg-card ring-1 ring-border rounded-sm">
                   <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
                 </div>
               }
             />
           </Document>
-
-          {/* Hover Navigation Buttons */}
-          {showHoverNav && !isLoading && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-                className="absolute left-4 top-1/2 -translate-y-1/2 h-20 w-10 rounded-md bg-background/80 hover:bg-background/95 backdrop-blur-sm border border-border/40 shadow-lg text-muted-foreground hover:text-foreground transition-all duration-300 animate-in fade-in slide-in-from-left-2"
-                aria-label="Previous page hover"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage >= numPages}
-                className="absolute right-4 top-1/2 -translate-y-1/2 h-20 w-10 rounded-md bg-background/80 hover:bg-background/95 backdrop-blur-sm border border-border/40 shadow-lg text-muted-foreground hover:text-foreground transition-all duration-300 animate-in fade-in slide-in-from-right-2"
-                aria-label="Next page hover"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </Button>
-            </>
-          )}
         </div>
       </ScrollArea>
+
+      {/* Viewport-fixed Navigation Buttons */}
+      {!isLoading && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage <= 1}
+            className={cn(
+              "absolute left-4 top-1/2 -translate-y-1/2 h-20 w-10 z-30 rounded-md bg-background/80 hover:bg-background/95 backdrop-blur-sm border border-border/40 shadow-lg text-muted-foreground hover:text-foreground transition-all duration-300",
+              "hidden md:inline-flex",
+              "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
+            )}
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage >= numPages}
+            className={cn(
+              "absolute right-4 top-1/2 -translate-y-1/2 h-20 w-10 z-30 rounded-md bg-background/80 hover:bg-background/95 backdrop-blur-sm border border-border/40 shadow-lg text-muted-foreground hover:text-foreground transition-all duration-300",
+              "hidden md:inline-flex",
+              "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
+            )}
+            aria-label="Next page"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+        </>
+      )}
 
       {/* Floating Toolbar */}
       {!isLoading && (
