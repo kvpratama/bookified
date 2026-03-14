@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { PdfViewer } from "./pdf-viewer";
+import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ChatDocument } from "./types";
 
@@ -60,10 +61,12 @@ const mockDocument: ChatDocument = {
 describe("PdfViewer", () => {
   beforeEach(() => {
     mockUpdateDocumentProgress.mockClear();
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams() as any);
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    vi.mocked(useRouter).mockReturnValue({ replace: vi.fn() } as any);
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams() as ReturnType<typeof useSearchParams>,
+    );
+    vi.mocked(useRouter).mockReturnValue({
+      replace: vi.fn(),
+    } as unknown as AppRouterInstance);
   });
 
   afterEach(() => {

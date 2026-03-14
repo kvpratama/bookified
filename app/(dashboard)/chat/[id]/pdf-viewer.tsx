@@ -6,6 +6,7 @@ import type { PDFDocumentProxy } from "pdfjs-dist";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "@/lib/pdf-worker";
+import { useTheme } from "next-themes";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,7 @@ export function PdfViewer({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { theme } = useTheme();
 
   const [numPages, setNumPages] = useState<number>(0);
 
@@ -263,7 +265,7 @@ export function PdfViewer({
             }
           >
             <div
-              className="transition-all duration-200 ease-in-out"
+              className="transition-all duration-200 ease-in-out relative"
               style={{
                 width: containerWidth ? "100%" : "auto",
                 maxWidth: containerWidth
@@ -279,10 +281,14 @@ export function PdfViewer({
                     ? Math.min(containerWidth, MAX_PAGE_WIDTH) * scale
                     : undefined
                 }
-                className="bg-card shadow-2xl ring-1 ring-border rounded-sm overflow-hidden"
+                className={cn(
+                  "bg-card shadow-2xl rounded-sm overflow-hidden",
+                  theme === "dark" &&
+                    "[&_canvas]:invert [&_canvas]:hue-rotate-180",
+                )}
                 loading={
                   <div
-                    className="flex items-center justify-center py-32 bg-card ring-1 ring-border rounded-sm"
+                    className="flex items-center justify-center py-32 bg-card rounded-sm"
                     style={{
                       width: containerWidth
                         ? Math.min(containerWidth, MAX_PAGE_WIDTH)
@@ -293,6 +299,9 @@ export function PdfViewer({
                   </div>
                 }
               />
+              {theme === "dark" && (
+                <div className="absolute inset-0 bg-background pointer-events-none rounded-sm mix-blend-lighten" />
+              )}
             </div>
           </Document>
         </div>
