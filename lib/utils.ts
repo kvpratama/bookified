@@ -30,7 +30,7 @@ export function formatBytes(bytes: number, decimals = 2) {
     "petabyte",
   ];
   const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(k)),
+    Math.max(0, Math.floor(Math.log(bytes) / Math.log(k))),
     units.length - 1,
   );
 
