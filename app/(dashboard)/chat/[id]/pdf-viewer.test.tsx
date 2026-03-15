@@ -247,8 +247,9 @@ describe("PdfViewer", () => {
   describe("URL Sync", () => {
     it("initializes currentPage from URL search params", async () => {
       const mockSearchParams = new URLSearchParams("page=10");
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as any);
+      vi.mocked(useSearchParams).mockReturnValue(
+        mockSearchParams as ReturnType<typeof useSearchParams>,
+      );
 
       render(<PdfViewer document={mockDocument} />);
 
@@ -261,8 +262,9 @@ describe("PdfViewer", () => {
 
     it("updates URL when page changes", async () => {
       const mockReplace = vi.fn();
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      vi.mocked(useRouter).mockReturnValue({ replace: mockReplace } as any);
+      vi.mocked(useRouter).mockReturnValue({
+        replace: mockReplace,
+      } as unknown as AppRouterInstance);
 
       render(<PdfViewer document={mockDocument} />);
 

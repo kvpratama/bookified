@@ -525,12 +525,14 @@ export function PdfViewer({
                 className="text-xs font-semibold tabular-nums w-[80px] text-center bg-transparent border-b border-foreground/20 focus:border-foreground/40 outline-none text-foreground/80 tracking-wide transition-colors"
               />
             ) : (
-              <span
+              <button
+                type="button"
                 onClick={handlePageClick}
-                className="text-xs font-semibold tabular-nums min-w-[80px] text-center select-none text-foreground/80 tracking-wide cursor-pointer hover:text-foreground hover:underline decoration-dotted underline-offset-4 transition-colors"
+                aria-label={`Page ${currentPage} of ${numPages}, click to edit`}
+                className="text-xs font-semibold tabular-nums min-w-[80px] text-center select-none text-foreground/80 tracking-wide cursor-pointer hover:text-foreground hover:underline decoration-dotted underline-offset-4 transition-colors bg-transparent border-none p-0"
               >
                 {currentPage} / {numPages}
-              </span>
+              </button>
             )}
             <Button
               variant="ghost"

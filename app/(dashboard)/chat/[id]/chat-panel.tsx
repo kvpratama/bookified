@@ -10,6 +10,11 @@ import type { ChatMessage } from "@/lib/store";
 import type { ChatDocument } from "./types";
 import { cn } from "@/lib/utils";
 
+const formatTime = (isoString: string) => {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+};
+
 export function ChatPanel({
   document: doc,
   collapsed,
@@ -99,11 +104,6 @@ export function ChatPanel({
     },
     [handleSendMessage],
   );
-
-  const formatTime = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
 
   // Collapsed state — show floating button
   if (collapsed) {

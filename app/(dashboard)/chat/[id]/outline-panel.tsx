@@ -8,6 +8,7 @@ import type { PDFDocumentProxy } from "pdfjs-dist";
 import { BookOpen } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { OutlineItem } from "./types";
 import "./outline-panel.css";
 
@@ -121,7 +122,12 @@ export function OutlinePanel({
         }
 
         onPageSelect(pageIndex + 1);
-      } catch {
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        toast.error(
+          `Failed to navigate to outline page, returning to page 1: ${message}`,
+        );
         onPageSelect(1);
       }
     },
@@ -134,7 +140,7 @@ export function OutlinePanel({
 
       return (
         <div
-          key={index}
+          key={`${depth}-${index}-${item.title}`}
           className="outline-item-enter"
           style={{ animationDelay: `${(depth * items.length + index) * 40}ms` }}
         >
