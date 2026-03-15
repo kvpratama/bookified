@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect, useCallback, useRef } from "react";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "@/lib/pdf-worker";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { BookOpen } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { OutlineItem } from "./types";
@@ -15,6 +17,55 @@ interface OutlinePanelProps {
   visible: boolean;
   isLoading: boolean;
   pdfDocument?: PDFDocumentProxy | null;
+  currentPage?: number;
+}
+
+/** Flatten outline tree into a list of { dest, pageNumber } for lookup */
+async function resolveOutlinePages(
+  items: OutlineItem[],
+  pdfDocument: PDFDocumentProxy,
+): Promise<Map<OutlineItem, number>> {
+  const map = new Map<OutlineItem, number>();
+
+  async function walk(list: OutlineItem[]) {
+    for (const item of list) {
+      if (item.dest) {
+        try {
+          if (Array.isArray(item.dest) && item.dest[0]) {
+            const pageIndex = await pdfDocument.getPageIndex(item.dest[0]);
+            map.set(item, pageIndex + 1);
+          }
+        } catch {
+          // skip unresolvable
+        }
+      }
+      if (item.items && item.items.length > 0) {
+        await walk(item.items);
+      }
+    }
+  }
+
+  await walk(items);
+  return map;
+}
+
+/** Given a flat map of item→page and the current page, find the active item.
+ *  The active item is the last one whose page ≤ currentPage. */
+function findActiveItem(
+  pageMap: Map<OutlineItem, number>,
+  currentPage: number,
+): OutlineItem | null {
+  let activeItem: OutlineItem | null = null;
+  let activePage = 0;
+
+  for (const [item, page] of pageMap) {
+    if (page <= currentPage && page >= activePage) {
+      activePage = page;
+      activeItem = item;
+    }
+  }
+
+  return activeItem;
 }
 
 export function OutlinePanel({
@@ -23,45 +74,89 @@ export function OutlinePanel({
   isLoading,
   onPageSelect,
   pdfDocument,
+  currentPage = 1,
 }: OutlinePanelProps) {
-  const handleItemClick = async (dest: unknown) => {
-    if (!pdfDocument || !dest) return;
+  const [pageMap, setPageMap] = useState<Map<OutlineItem, number>>(new Map());
+  const activeRef = useRef<HTMLButtonElement>(null);
 
-    try {
-      // dest can be a string (named destination) or array [ref, ...]
-      let pageIndex: number;
+  // Resolve all outline destinations to page numbers once
+  useEffect(() => {
+    if (!outline || !pdfDocument) return;
 
-      if (Array.isArray(dest) && dest[0]) {
-        // dest is [ref, ...] - get page index from ref
-        pageIndex = await pdfDocument.getPageIndex(dest[0]);
-      } else {
-        // Fallback to page 1 if we can't resolve
-        pageIndex = 0;
-      }
+    let cancelled = false;
+    resolveOutlinePages(outline, pdfDocument).then((map) => {
+      if (!cancelled) setPageMap(map);
+    });
 
-      // Page numbers are 1-indexed for users
-      onPageSelect(pageIndex + 1);
-    } catch {
-      // If resolution fails, just go to page 1
-      onPageSelect(1);
+    return () => {
+      cancelled = true;
+    };
+  }, [outline, pdfDocument]);
+
+  // Derive active item during render — no effect needed
+  const activeItem =
+    pageMap.size > 0 ? findActiveItem(pageMap, currentPage) : null;
+
+  // Scroll the active item into view within the panel
+  useEffect(() => {
+    if (activeRef.current && visible) {
+      activeRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
     }
+  }, [activeItem, visible]);
+
+  const handleItemClick = useCallback(
+    async (dest: unknown) => {
+      if (!pdfDocument || !dest) return;
+
+      try {
+        let pageIndex: number;
+
+        if (Array.isArray(dest) && dest[0]) {
+          pageIndex = await pdfDocument.getPageIndex(dest[0]);
+        } else {
+          pageIndex = 0;
+        }
+
+        onPageSelect(pageIndex + 1);
+      } catch {
+        onPageSelect(1);
+      }
+    },
+    [pdfDocument, onPageSelect],
+  );
+
+  const renderOutlineItems = (items: OutlineItem[], depth = 0) => {
+    return items.map((item, index) => {
+      const isActive = item === activeItem;
+
+      return (
+        <div
+          key={index}
+          className="outline-item-enter"
+          style={{ animationDelay: `${(depth * items.length + index) * 40}ms` }}
+        >
+          <button
+            ref={isActive ? activeRef : undefined}
+            onClick={() => handleItemClick(item.dest)}
+            className={cn("outline-item-btn", depth === 0 && "font-medium")}
+          >
+            {isActive && <span>→ </span>}
+            {item.title}
+          </button>
+          {item.items && item.items.length > 0 && (
+            <div className="outline-nested">
+              {renderOutlineItems(item.items, depth + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
   };
 
-  const renderOutlineItems = (items: OutlineItem[]) => {
-    return items.map((item, index) => (
-      <div key={index}>
-        <button
-          onClick={() => handleItemClick(item.dest)}
-          className="text-left w-full py-1 px-2 hover:bg-muted/50 rounded text-sm"
-        >
-          {item.title}
-        </button>
-        {item.items && item.items.length > 0 && (
-          <div className="ml-3">{renderOutlineItems(item.items)}</div>
-        )}
-      </div>
-    ));
-  };
+  const hasOutline = outline && outline.length > 0;
 
   return (
     <div
@@ -79,11 +174,29 @@ export function OutlinePanel({
       <ScrollArea className="h-[calc(100%-57px)]">
         <div className="px-3 py-4 outline-panel-content">
           {isLoading && (
-            <div className="text-sm text-muted-foreground">
-              Loading outline...
+            <div className="space-y-3 px-2" role="status">
+              <span className="sr-only">Loading outline...</span>
+              {[72, 55, 85, 40, 65].map((width, i) => (
+                <div
+                  key={i}
+                  className="outline-skeleton-bar"
+                  style={{
+                    width: `${width}%`,
+                    animationDelay: `${i * 150}ms`,
+                  }}
+                />
+              ))}
             </div>
           )}
-          {!isLoading && outline && renderOutlineItems(outline)}
+          {!isLoading && hasOutline && renderOutlineItems(outline)}
+          {!isLoading && !hasOutline && (
+            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground/60">
+              <BookOpen className="size-8 mb-3 opacity-40" strokeWidth={1.2} />
+              <p className="text-xs font-serif italic tracking-wide">
+                No contents available
+              </p>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>

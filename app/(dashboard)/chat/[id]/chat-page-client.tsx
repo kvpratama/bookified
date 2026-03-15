@@ -47,6 +47,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
   const [hasOutline, setHasOutline] = useState(false);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [selectedPage, setSelectedPage] = useState<number | undefined>();
+  const [currentPage, setCurrentPage] = useState(1);
   const outlineRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -61,6 +62,10 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
 
   const handleDocumentLoad = useCallback((pdf: PDFDocumentProxy) => {
     setPdfDocument(pdf);
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
   }, []);
 
   const updateUrl = useCallback(
@@ -197,6 +202,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
             isLoading={isOutlineLoading}
             onPageSelect={handlePageSelect}
             pdfDocument={pdfDocument}
+            currentPage={currentPage}
           />
         </div>
 
@@ -212,6 +218,7 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
             externalPage={selectedPage}
             onOutlineExtracted={handleOutlineExtracted}
             onDocumentLoad={handleDocumentLoad}
+            onPageChange={handlePageChange}
           />
         </div>
 

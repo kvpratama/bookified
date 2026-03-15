@@ -37,6 +37,7 @@ export function PdfViewer({
   externalPage,
   onOutlineExtracted,
   onDocumentLoad,
+  onPageChange,
 }: {
   document: ChatDocument;
   externalPage?: number;
@@ -45,6 +46,7 @@ export function PdfViewer({
     isLoading: boolean,
   ) => void;
   onDocumentLoad?: (pdfDocument: PDFDocumentProxy) => void;
+  onPageChange?: (page: number) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -262,6 +264,13 @@ export function PdfViewer({
 
     return () => observer.disconnect();
   }, [numPages, debouncedUpdateProgress, debouncedUpdateUrl]);
+
+  // Notify parent of page changes
+  useEffect(() => {
+    if (onPageChange) {
+      onPageChange(currentPage);
+    }
+  }, [currentPage, onPageChange]);
 
   // Scroll to initial page after document loads
   useEffect(() => {

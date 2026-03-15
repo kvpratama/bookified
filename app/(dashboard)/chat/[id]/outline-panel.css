@@ -1,5 +1,108 @@
-/* Outline Panel - Library Aesthetic Styling */
+/* Outline Panel - Editorial Book Index Styling */
 
+/* ── Skeleton shimmer for loading state ── */
+@keyframes outline-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.outline-skeleton-bar {
+  height: 0.75rem;
+  border-radius: 0.25rem;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--accent) / 0.3) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: outline-shimmer 1.8s ease-in-out infinite;
+}
+
+/* ── Staggered fade-in for outline items ── */
+@keyframes outline-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.outline-item-enter {
+  animation: outline-fade-in 0.35s ease-out both;
+}
+
+/* ── Outline item button styling ── */
+.outline-item-btn {
+  position: relative;
+  text-align: left;
+  width: 100%;
+  padding: 0.4rem 0.75rem 0.4rem 1rem;
+  font-family: var(--font-serif);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: hsl(var(--muted-foreground));
+  border-radius: 0.25rem;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    padding-left 0.2s ease;
+}
+
+.outline-item-btn::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 2px;
+  border-radius: 1px;
+  background: hsl(var(--accent-foreground));
+  opacity: 0;
+  transform: scaleY(0);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.outline-item-btn:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--accent) / 0.5);
+  padding-left: 1.15rem;
+}
+
+.outline-item-btn:hover::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+/* ── Nested items tree line ── */
+.outline-nested {
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid hsl(var(--border) / 0.5);
+}
+
+.outline-nested .outline-item-btn {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: hsl(var(--muted-foreground) / 0.85);
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+.outline-nested .outline-item-btn:hover {
+  color: hsl(var(--foreground));
+}
+
+/* ── react-pdf Outline overrides (kept for compatibility) ── */
 .outline-panel-content .react-pdf__Outline {
   font-family: var(--font-serif);
   font-size: 0.875rem;
