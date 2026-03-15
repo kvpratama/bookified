@@ -1,14 +1,15 @@
+import { pdfjs } from "react-pdf";
 import type { ExtractedMetadata } from "./upload-schema";
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url,
+).toString();
 
 export async function extractPdfMetadata(
   file: File,
 ): Promise<ExtractedMetadata> {
-  const pdfjsLib = await import("pdfjs-dist");
-
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url,
-  ).toString();
+  const pdfjsLib = pdfjs;
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) })

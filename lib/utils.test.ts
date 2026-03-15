@@ -52,3 +52,44 @@ describe("getBaseUrl", () => {
     }
   });
 });
+
+describe("formatBytes", () => {
+  it("formats small bytes correctly", async () => {
+    const { formatBytes } = await import("./utils");
+    expect(formatBytes(0)).toBe("0 B");
+    expect(formatBytes(500)).toBe("500 byte");
+  });
+
+  it("formats kilobytes correctly", async () => {
+    const { formatBytes } = await import("./utils");
+    expect(formatBytes(1024)).toBe("1 kB");
+    expect(formatBytes(1536)).toBe("1.5 kB");
+  });
+
+  it("formats megabytes correctly", async () => {
+    const { formatBytes } = await import("./utils");
+    expect(formatBytes(1024 * 1024)).toBe("1 MB");
+    expect(formatBytes(1024 * 1024 * 1.25)).toBe("1.25 MB");
+  });
+
+  it("respects decimal parameter", async () => {
+    const { formatBytes } = await import("./utils");
+    expect(formatBytes(1024 * 1024 * 1.255, 1)).toBe("1.3 MB");
+    expect(formatBytes(1024 * 1024 * 1.255, 2)).toBe("1.26 MB");
+  });
+});
+
+describe("formatDocumentName", () => {
+  it("removes .pdf extension case-insensitively", async () => {
+    const { formatDocumentName } = await import("./utils");
+    expect(formatDocumentName("My Book.pdf")).toBe("My Book");
+    expect(formatDocumentName("ANOTHER_ONE.PDF")).toBe("ANOTHER ONE");
+  });
+
+  it("replaces underscores with spaces", async () => {
+    const { formatDocumentName } = await import("./utils");
+    expect(formatDocumentName("getting_started_with_nextjs.pdf")).toBe(
+      "getting started with nextjs",
+    );
+  });
+});

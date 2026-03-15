@@ -18,15 +18,28 @@ export function getBlobUrl(privateUrl: string): string {
 }
 
 export function formatBytes(bytes: number, decimals = 2) {
-  if (bytes < 0 || !+bytes) return "0 Bytes";
+  if (bytes < 0 || !+bytes) return "0 B";
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const units = [
+    "byte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+  ];
   const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(k)),
-    sizes.length - 1,
+    Math.max(0, Math.floor(Math.log(bytes) / Math.log(k))),
+    units.length - 1,
   );
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+
+  return new Intl.NumberFormat("en-US", {
+    style: "unit",
+    unit: units[i],
+    unitDisplay: "short",
+    maximumFractionDigits: dm,
+  }).format(bytes / Math.pow(k, i));
 }
 
 export function formatDocumentName(name: string): string {
