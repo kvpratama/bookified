@@ -179,6 +179,13 @@ export function PdfViewer({
     [numPages, debouncedUpdateProgress, updateUrl],
   );
 
+  const onDocumentItemClick = useCallback(
+    ({ pageNumber }: { pageNumber: number }) => {
+      scrollToPage(pageNumber);
+    },
+    [scrollToPage],
+  );
+
   // Virtualization observer: wide rootMargin to render pages before they scroll into view
   useEffect(() => {
     if (numPages === 0 || !scrollViewportRef.current) return;
@@ -425,6 +432,7 @@ export function PdfViewer({
             file={fileUrl}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
+            onItemClick={onDocumentItemClick}
             loading={null}
             className="flex flex-col items-center [&_.react-pdf__Page]:w-full! [&_.react-pdf__Page_canvas]:w-full! [&_.react-pdf__Page_canvas]:h-auto!"
             error={
