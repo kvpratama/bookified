@@ -14,13 +14,7 @@ import { getBlobUrl } from "@/lib/utils";
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce-callback";
 import { useKeyboardNavigation } from "@/lib/hooks/use-keyboard-navigation";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  Loader2,
-} from "lucide-react";
+import { ChevronUp, ChevronDown, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 // ... (imports)
 import { updateDocumentProgress } from "./actions";
@@ -30,6 +24,8 @@ const ZOOM_STEP = 0.15;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
 const MAX_PAGE_WIDTH = 900;
+const PAGE_GAP = 16;
+const VIRTUALIZATION_BUFFER = 3; // render this many pages above/below viewport
 
 function clampPage(page: number, totalPages?: number): number {
   const clamped = Math.max(1, page);
@@ -73,7 +69,14 @@ export function PdfViewer({
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInputValue, setPageInputValue] = useState("");
   const [containerWidth, setContainerWidth] = useState<number | undefined>();
+  const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const pageRefsMap = useRef<Map<number, HTMLDivElement>>(new Map());
+  const pageHeightsMap = useRef<Map<number, number>>(new Map());
+  const pageRatioMap = useRef<Map<number, number>>(new Map());
+  const isScrollingToPage = useRef(false);
+  const initialScrollDone = useRef(false);
 
   const debouncedSetContainerWidth = useDebouncedCallback<[number]>((width) => {
     setContainerWidth(width);
@@ -86,7 +89,6 @@ export function PdfViewer({
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (entry) {
-        // Use immediate update for the FIRST load, then debounce
         if (containerWidth === undefined) {
           setContainerWidth(entry.contentRect.width);
         } else {
@@ -105,12 +107,10 @@ export function PdfViewer({
       setCurrentPage((p) => clampPage(p, pdf.numPages));
       setIsLoading(false);
 
-      // Pass PDF document instance to parent
       if (onDocumentLoad) {
         onDocumentLoad(pdf);
       }
 
-      // Extract outline
       if (onOutlineExtracted) {
         try {
           const outline = await pdf.getOutline();
@@ -154,25 +154,144 @@ export function PdfViewer({
     [pathname, router, searchParams],
   );
 
-  const goToPage = useCallback(
+  const debouncedUpdateUrl = useDebouncedCallback<[number]>((page: number) => {
+    updateUrl(page);
+  }, 500);
+
+  const scrollToPage = useCallback(
     (page: number) => {
       const newPage = clampPage(page, numPages > 0 ? numPages : undefined);
-      setCurrentPage(newPage);
-      debouncedUpdateProgress(newPage);
-      updateUrl(newPage);
+      const el = pageRefsMap.current.get(newPage);
+      if (el && scrollViewportRef.current) {
+        isScrollingToPage.current = true;
+        pageRatioMap.current.clear();
+        setCurrentPage(newPage);
+        debouncedUpdateProgress(newPage);
+        updateUrl(newPage);
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(() => {
+          isScrollingToPage.current = false;
+        }, 800);
+      }
     },
     [numPages, debouncedUpdateProgress, updateUrl],
   );
 
+  // Virtualization observer: wide rootMargin to render pages before they scroll into view
+  useEffect(() => {
+    if (numPages === 0 || !scrollViewportRef.current) return;
+
+    const visibleSet = new Set<number>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let changed = false;
+        for (const entry of entries) {
+          const pageNum = Number(
+            (entry.target as HTMLElement).dataset.pageNumber,
+          );
+          if (entry.isIntersecting) {
+            if (!visibleSet.has(pageNum)) {
+              visibleSet.add(pageNum);
+              changed = true;
+            }
+          } else {
+            if (visibleSet.has(pageNum)) {
+              visibleSet.delete(pageNum);
+              changed = true;
+            }
+          }
+        }
+        if (changed) {
+          setVisiblePages(new Set(visibleSet));
+        }
+      },
+      {
+        root: scrollViewportRef.current,
+        rootMargin: "100% 0px 100% 0px",
+        threshold: 0,
+      },
+    );
+
+    for (const [, el] of pageRefsMap.current) {
+      observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, [numPages]);
+
+  // Current page observer: tight rootMargin to accurately track which page is on screen
+  useEffect(() => {
+    if (numPages === 0 || !scrollViewportRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isScrollingToPage.current) return;
+
+        for (const entry of entries) {
+          const pageNum = Number(
+            (entry.target as HTMLElement).dataset.pageNumber,
+          );
+          pageRatioMap.current.set(pageNum, entry.intersectionRatio);
+        }
+
+        let bestPage: number | null = null;
+        let bestRatio = 0;
+        for (const [pageNum, ratio] of pageRatioMap.current) {
+          if (ratio > bestRatio) {
+            bestRatio = ratio;
+            bestPage = pageNum;
+          }
+        }
+
+        if (bestPage !== null) {
+          setCurrentPage(bestPage);
+          debouncedUpdateProgress(bestPage);
+          debouncedUpdateUrl(bestPage);
+        }
+      },
+      {
+        root: scrollViewportRef.current,
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      },
+    );
+
+    for (const [, el] of pageRefsMap.current) {
+      observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, [numPages, debouncedUpdateProgress, debouncedUpdateUrl]);
+
+  // Scroll to initial page after document loads
+  useEffect(() => {
+    if (numPages === 0 || initialScrollDone.current) return;
+    const initialPage = getInitialPage();
+    if (initialPage > 1) {
+      // Wait for pages to render
+      requestAnimationFrame(() => {
+        const el = pageRefsMap.current.get(initialPage);
+        if (el) {
+          isScrollingToPage.current = true;
+          el.scrollIntoView({ behavior: "instant", block: "start" });
+          setTimeout(() => {
+            isScrollingToPage.current = false;
+          }, 200);
+        }
+      });
+    }
+    initialScrollDone.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [numPages]);
+
   // Handle external page navigation
   useEffect(() => {
     if (externalPage && externalPage !== currentPage && numPages > 0) {
-      // Use a microtask to avoid synchronous setState lint error
       Promise.resolve().then(() => {
-        goToPage(externalPage);
+        scrollToPage(externalPage);
       });
     }
-  }, [externalPage, numPages, currentPage, goToPage]);
+  }, [externalPage, numPages, currentPage, scrollToPage]);
 
   const zoomIn = useCallback(() => {
     setScale((s) => Math.min(s + ZOOM_STEP, MAX_SCALE));
@@ -197,10 +316,10 @@ export function PdfViewer({
   const handlePageInputSubmit = useCallback(() => {
     const pageNum = parseInt(pageInputValue, 10);
     if (!isNaN(pageNum)) {
-      goToPage(pageNum);
+      scrollToPage(pageNum);
     }
     setIsEditingPage(false);
-  }, [pageInputValue, goToPage]);
+  }, [pageInputValue, scrollToPage]);
 
   const handlePageInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -217,10 +336,51 @@ export function PdfViewer({
     setIsEditingPage(false);
   }, []);
 
+  const setPageRef = useCallback(
+    (pageNumber: number, el: HTMLDivElement | null) => {
+      if (el) {
+        pageRefsMap.current.set(pageNumber, el);
+      } else {
+        pageRefsMap.current.delete(pageNumber);
+      }
+    },
+    [],
+  );
+
+  // Determine which pages should be rendered (visible + buffer)
+  const renderedPageSet = new Set<number>();
+  if (visiblePages.size > 0) {
+    for (const p of visiblePages) {
+      for (
+        let i = p - VIRTUALIZATION_BUFFER;
+        i <= p + VIRTUALIZATION_BUFFER;
+        i++
+      ) {
+        if (i >= 1 && i <= numPages) renderedPageSet.add(i);
+      }
+    }
+  } else {
+    // Before any intersection fires, render around currentPage
+    for (
+      let i = currentPage - VIRTUALIZATION_BUFFER;
+      i <= currentPage + VIRTUALIZATION_BUFFER;
+      i++
+    ) {
+      if (i >= 1 && i <= numPages) renderedPageSet.add(i);
+    }
+  }
+
   useKeyboardNavigation({
-    onLeft: () => goToPage(currentPage - 1),
-    onRight: () => goToPage(currentPage + 1),
+    onLeft: () => scrollToPage(currentPage - 1),
+    onRight: () => scrollToPage(currentPage + 1),
   });
+
+  const pageWidth = containerWidth
+    ? Math.min(containerWidth, MAX_PAGE_WIDTH) * scale
+    : undefined;
+
+  // Fallback estimated height for placeholder pages (letter-size aspect ratio)
+  const estimatedPageHeight = pageWidth ? pageWidth * 1.294 : 800;
 
   const fileUrl = getBlobUrl(doc.blob_url);
 
@@ -230,13 +390,18 @@ export function PdfViewer({
       ref={containerRef}
     >
       {/* PDF content */}
-      <ScrollArea className="flex-1" orientation="both">
+      <ScrollArea
+        className="flex-1"
+        orientation="both"
+        viewportRef={scrollViewportRef}
+      >
         <div
           data-testid="pdf-viewer-area"
           className={cn(
-            "flex flex-col items-center justify-center py-12 px-6 min-h-full relative",
+            "flex flex-col items-center py-8 px-6 min-h-full relative",
             isLoading && "items-center justify-center",
           )}
+          style={{ gap: `${PAGE_GAP}px` }}
         >
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-20 gap-4 animate-in fade-in duration-500">
@@ -252,7 +417,7 @@ export function PdfViewer({
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
             loading={null}
-            className="[&_.react-pdf__Page]:w-full! [&_.react-pdf__Page_canvas]:w-full! [&_.react-pdf__Page_canvas]:h-auto!"
+            className="flex flex-col items-center [&_.react-pdf__Page]:w-full! [&_.react-pdf__Page_canvas]:w-full! [&_.react-pdf__Page_canvas]:h-auto!"
             error={
               <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
                 <p className="text-sm text-destructive font-medium">
@@ -264,82 +429,66 @@ export function PdfViewer({
               </div>
             }
           >
-            <div
-              className="transition-all duration-200 ease-in-out relative"
-              style={{
-                width: containerWidth ? "100%" : "auto",
-                maxWidth: containerWidth
-                  ? `${Math.min(containerWidth, MAX_PAGE_WIDTH) * scale}px`
-                  : "none",
-                height: "auto",
-              }}
-            >
-              <Page
-                pageNumber={currentPage}
-                width={
-                  containerWidth
-                    ? Math.min(containerWidth, MAX_PAGE_WIDTH) * scale
-                    : undefined
-                }
-                className={cn(
-                  "bg-card shadow-2xl rounded-sm overflow-hidden",
-                  theme === "dark" &&
-                    "[&_canvas]:invert [&_canvas]:hue-rotate-180",
-                )}
-                loading={
-                  <div
-                    className="flex items-center justify-center py-32 bg-card rounded-sm"
-                    style={{
-                      width: containerWidth
-                        ? Math.min(containerWidth, MAX_PAGE_WIDTH)
-                        : 600,
-                    }}
-                  >
-                    <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
-                  </div>
-                }
-              />
-              {theme === "dark" && (
-                <div className="absolute inset-0 bg-background pointer-events-none rounded-sm mix-blend-lighten" />
+            {numPages > 0 &&
+              Array.from({ length: numPages }, (_, i) => i + 1).map(
+                (pageNumber) => {
+                  const shouldRender = renderedPageSet.has(pageNumber);
+                  const placeholderHeight =
+                    pageHeightsMap.current.get(pageNumber) ??
+                    estimatedPageHeight;
+                  return (
+                    <div
+                      key={pageNumber}
+                      ref={(el) => setPageRef(pageNumber, el)}
+                      data-page-number={pageNumber}
+                      className={cn(
+                        "rounded-sm overflow-hidden",
+                        shouldRender && "shadow-2xl bg-white",
+                        shouldRender &&
+                          theme === "dark" &&
+                          "invert hue-rotate-180",
+                      )}
+                      style={{
+                        width: containerWidth ? "100%" : "auto",
+                        maxWidth: pageWidth ? `${pageWidth}px` : "none",
+                        height: shouldRender
+                          ? "auto"
+                          : `${placeholderHeight}px`,
+                        marginBottom:
+                          pageNumber < numPages ? `${PAGE_GAP}px` : 0,
+                      }}
+                    >
+                      {shouldRender && (
+                        <Page
+                          pageNumber={pageNumber}
+                          width={pageWidth}
+                          className="overflow-hidden"
+                          onRenderSuccess={() => {
+                            const el = pageRefsMap.current.get(pageNumber);
+                            if (el) {
+                              pageHeightsMap.current.set(
+                                pageNumber,
+                                el.offsetHeight,
+                              );
+                            }
+                          }}
+                          loading={
+                            <div
+                              className="flex items-center justify-center"
+                              style={{ height: `${placeholderHeight}px` }}
+                            >
+                              <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                            </div>
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                },
               )}
-            </div>
           </Document>
         </div>
       </ScrollArea>
-
-      {/* Viewport-fixed Navigation Buttons */}
-      {!isLoading && (
-        <>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage <= 1}
-            className={cn(
-              "absolute left-4 top-1/2 -translate-y-1/2 h-20 w-10 z-30 rounded-md bg-background/80 hover:bg-background/95 backdrop-blur-sm border border-border/40 shadow-lg text-muted-foreground hover:text-foreground transition-all duration-300",
-              "hidden md:inline-flex",
-              "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
-            )}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage >= numPages}
-            className={cn(
-              "absolute right-4 top-1/2 -translate-y-1/2 h-20 w-10 z-30 rounded-md bg-background/80 hover:bg-background/95 backdrop-blur-sm border border-border/40 shadow-lg text-muted-foreground hover:text-foreground transition-all duration-300",
-              "hidden md:inline-flex",
-              "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
-            )}
-            aria-label="Next page"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </Button>
-        </>
-      )}
 
       {/* Floating Toolbar */}
       {!isLoading && (
@@ -350,10 +499,10 @@ export function PdfViewer({
               variant="ghost"
               size="icon"
               className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => goToPage(currentPage - 1)}
+              onClick={() => scrollToPage(currentPage - 1)}
               disabled={currentPage <= 1}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronUp className="w-4 h-4" />
               <span className="sr-only">Previous page</span>
             </Button>
             {isEditingPage ? (
@@ -378,10 +527,10 @@ export function PdfViewer({
               variant="ghost"
               size="icon"
               className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => goToPage(currentPage + 1)}
+              onClick={() => scrollToPage(currentPage + 1)}
               disabled={currentPage >= numPages}
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronDown className="w-4 h-4" />
               <span className="sr-only">Next page</span>
             </Button>
           </div>

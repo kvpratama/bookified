@@ -198,62 +198,24 @@ describe("PdfViewer", () => {
     });
   });
 
-  describe("Hover Navigation Buttons", () => {
-    it("shows navigation buttons when hovering over PDF viewer area", async () => {
+  describe("Toolbar Navigation Buttons", () => {
+    it("shows navigation buttons in the floating toolbar", async () => {
       render(<PdfViewer document={mockDocument} />);
 
       await waitFor(() => {
         expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
       });
 
-      // Buttons exist in DOM (for accessibility) but are CSS-hidden
-      // There are 2 sets: hover buttons (aria-label) and bottom bar buttons (sr-only)
       const prevButtons = screen.getAllByRole("button", {
         name: /previous page/i,
       });
       const nextButtons = screen.getAllByRole("button", { name: /next page/i });
 
-      expect(prevButtons).toHaveLength(2);
-      expect(nextButtons).toHaveLength(2);
+      expect(prevButtons).toHaveLength(1);
+      expect(nextButtons).toHaveLength(1);
     });
 
-    it("navigates to previous page when clicking left hover button", async () => {
-      render(<PdfViewer document={mockDocument} />);
-
-      await waitFor(() => {
-        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
-      });
-
-      const prevButtons = screen.getAllByRole("button", {
-        name: /previous page/i,
-      });
-      fireEvent.click(prevButtons[0]);
-
-      // Should navigate from page 5 to page 4
-      await waitFor(() => {
-        expect(screen.getByText(/4\s*\/\s*50/)).toBeInTheDocument();
-      });
-    });
-
-    it("navigates to next page when clicking right hover button", async () => {
-      render(<PdfViewer document={mockDocument} />);
-
-      await waitFor(() => {
-        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
-      });
-
-      const nextButtons = screen.getAllByRole("button", {
-        name: /next page/i,
-      });
-      fireEvent.click(nextButtons[0]);
-
-      // Should navigate from page 5 to page 6
-      await waitFor(() => {
-        expect(screen.getByText(/6\s*\/\s*50/)).toBeInTheDocument();
-      });
-    });
-
-    it("disables left hover button on first page", async () => {
+    it("disables previous button on first page", async () => {
       const firstPageDoc = { ...mockDocument, current_page: 1 };
       render(<PdfViewer document={firstPageDoc} />);
 
@@ -261,13 +223,13 @@ describe("PdfViewer", () => {
         expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
       });
 
-      const prevButtons = screen.getAllByRole("button", {
+      const prevButton = screen.getByRole("button", {
         name: /previous page/i,
       });
-      expect(prevButtons[0]).toBeDisabled();
+      expect(prevButton).toBeDisabled();
     });
 
-    it("disables right hover button on last page", async () => {
+    it("disables next button on last page", async () => {
       const lastPageDoc = { ...mockDocument, current_page: 50 };
       render(<PdfViewer document={lastPageDoc} />);
 
@@ -275,10 +237,10 @@ describe("PdfViewer", () => {
         expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
       });
 
-      const nextButtons = screen.getAllByRole("button", {
+      const nextButton = screen.getByRole("button", {
         name: /next page/i,
       });
-      expect(nextButtons[0]).toBeDisabled();
+      expect(nextButton).toBeDisabled();
     });
   });
 
@@ -308,10 +270,10 @@ describe("PdfViewer", () => {
         expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
       });
 
-      const nextButtons = screen.getAllByRole("button", {
+      const nextButton = screen.getByRole("button", {
         name: /next page/i,
       });
-      fireEvent.click(nextButtons[0]);
+      fireEvent.click(nextButton);
 
       expect(mockReplace).toHaveBeenCalledWith(
         expect.stringContaining("page=6"),
