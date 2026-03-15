@@ -21,7 +21,25 @@ interface OutlinePanelProps {
   currentPage?: number;
 }
 
-/** Flatten outline tree into a list of { dest, pageNumber } for lookup */
+/** Resolve a dest (string name or explicit array) to a 1-based page number. */
+async function resolveDestToPage(
+  dest: unknown,
+  pdfDocument: PDFDocumentProxy,
+): Promise<number | null> {
+  let resolved = dest;
+
+  if (typeof resolved === "string") {
+    resolved = await pdfDocument.getDestination(resolved);
+  }
+
+  if (Array.isArray(resolved) && resolved[0]) {
+    const pageIndex = await pdfDocument.getPageIndex(resolved[0]);
+    return pageIndex + 1;
+  }
+
+  return null;
+}
+
 async function resolveOutlinePages(
   items: OutlineItem[],
   pdfDocument: PDFDocumentProxy,
@@ -32,9 +50,9 @@ async function resolveOutlinePages(
     for (const item of list) {
       if (item.dest) {
         try {
-          if (Array.isArray(item.dest) && item.dest[0]) {
-            const pageIndex = await pdfDocument.getPageIndex(item.dest[0]);
-            map.set(item, pageIndex + 1);
+          const page = await resolveDestToPage(item.dest, pdfDocument);
+          if (page !== null) {
+            map.set(item, page);
           }
         } catch {
           // skip unresolvable
@@ -113,15 +131,8 @@ export function OutlinePanel({
       if (!pdfDocument || !dest) return;
 
       try {
-        let pageIndex: number;
-
-        if (Array.isArray(dest) && dest[0]) {
-          pageIndex = await pdfDocument.getPageIndex(dest[0]);
-        } else {
-          pageIndex = 0;
-        }
-
-        onPageSelect(pageIndex + 1);
+        const page = await resolveDestToPage(dest, pdfDocument);
+        onPageSelect(page ?? 1);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Unknown error";
