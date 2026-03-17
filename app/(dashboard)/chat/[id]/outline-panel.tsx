@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useTransition } from "react";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "@/lib/pdf-worker";
@@ -97,14 +97,19 @@ export function OutlinePanel({
 }: OutlinePanelProps) {
   const [pageMap, setPageMap] = useState<Map<OutlineItem, number>>(new Map());
   const activeRef = useRef<HTMLButtonElement>(null);
+  const [, startTransition] = useTransition();
 
-  // Resolve all outline destinations to page numbers once
+  // Resolve all outline destinations to page numbers once (non-blocking)
   useEffect(() => {
     if (!outline || !pdfDocument) return;
 
     let cancelled = false;
     resolveOutlinePages(outline, pdfDocument).then((map) => {
-      if (!cancelled) setPageMap(map);
+      if (!cancelled) {
+        startTransition(() => {
+          setPageMap(map);
+        });
+      }
     });
 
     return () => {

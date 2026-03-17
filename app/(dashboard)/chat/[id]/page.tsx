@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -48,5 +48,9 @@ export default async function ChatPage({ params }: PageProps) {
     current_page: doc.current_page || 1,
   };
 
-  return <ChatPageClient document={document} />;
+  return (
+    <Suspense>
+      <ChatPageClient document={document} />
+    </Suspense>
+  );
 }

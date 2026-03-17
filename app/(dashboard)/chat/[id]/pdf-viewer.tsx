@@ -132,11 +132,7 @@ export function PdfViewer({
   const debouncedUpdateProgress = useDebouncedCallback<[number]>(
     async (page: number) => {
       try {
-        const { error } = await updateDocumentProgress(
-          doc.id,
-          page,
-          new Date().toISOString(),
-        );
+        const { error } = await updateDocumentProgress(doc.id, page);
         if (error) {
           toast.error("Failed to save reading progress");
         }

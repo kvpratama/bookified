@@ -144,14 +144,19 @@ export function ChatPanel({
       <ScrollArea className="flex-1 px-4 py-6" viewportRef={scrollViewportRef}>
         <div className="space-y-8 flex flex-col pb-4">
           {currentChat.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center mx-auto max-w-[260px] animate-in fade-in duration-700">
-              <div className="w-14 h-14 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center mb-6 shadow-sm">
-                <Sparkles className="w-6 h-6 text-primary" />
+            <div className="flex flex-col items-center justify-center py-20 text-center mx-auto max-w-[260px] animate-in fade-in duration-700 relative">
+              {/* Warm radial glow */}
+              <div className="absolute inset-0 -top-10 pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-accent-foreground/[0.04] blur-3xl" />
+                <div className="absolute top-1/3 left-1/3 w-32 h-32 rounded-full bg-primary/[0.03] blur-2xl" />
               </div>
-              <h3 className="text-xl font-serif text-foreground mb-3 tracking-tight">
+              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-accent-foreground/10 to-primary/5 border border-accent-foreground/10 flex items-center justify-center mb-6 shadow-sm">
+                <Sparkles className="w-6 h-6 text-accent-foreground animate-breathe" />
+              </div>
+              <h3 className="relative text-xl font-serif text-foreground mb-3 tracking-tight">
                 Ask the Document
               </h3>
-              <p className="text-[13px] text-muted-foreground leading-relaxed">
+              <p className="relative text-[13px] text-muted-foreground leading-relaxed">
                 Extract key insights, summarize chapters, or find specific
                 references within this volume.
               </p>
