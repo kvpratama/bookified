@@ -173,7 +173,9 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
               </span>
               {doc.page_count && (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-border" />
+                  <span className="text-[10px] text-muted-foreground/40 select-none">
+                    ·
+                  </span>
                   <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
                     {doc.page_count} pages
                   </span>
@@ -181,7 +183,9 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
               )}
               {doc.author && (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-border" />
+                  <span className="text-[10px] text-muted-foreground/40 select-none">
+                    ·
+                  </span>
                   <span className="text-[10px] text-muted-foreground font-serif italic truncate max-w-[200px]">
                     {doc.author}
                   </span>

@@ -14,7 +14,14 @@ import { getBlobUrl } from "@/lib/utils";
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce-callback";
 import { useKeyboardNavigation } from "@/lib/hooks/use-keyboard-navigation";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { ChevronUp, ChevronDown, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
+import {
+  ChevronUp,
+  ChevronDown,
+  ZoomIn,
+  ZoomOut,
+  Loader2,
+  FileText,
+} from "lucide-react";
 import { toast } from "sonner";
 // ... (imports)
 import { updateDocumentProgress } from "./actions";
@@ -432,13 +439,24 @@ export function PdfViewer({
             loading={null}
             className="flex flex-col items-center [&_.react-pdf__Page]:w-full! [&_.react-pdf__Page_canvas]:w-full! [&_.react-pdf__Page_canvas]:h-auto!"
             error={
-              <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
-                <p className="text-sm text-destructive font-medium">
-                  Failed to load PDF
+              <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
+                <div className="w-14 h-14 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mb-5">
+                  <FileText className="w-6 h-6 text-destructive" />
+                </div>
+                <h3 className="text-lg font-serif text-foreground mb-2 tracking-tight">
+                  Unable to Load Document
+                </h3>
+                <p className="text-[13px] text-muted-foreground max-w-[260px] leading-relaxed mb-5">
+                  The document could not be rendered. It may be corrupted or
+                  temporarily unavailable.
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  The document could not be rendered. Please try again later.
-                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                >
+                  Try again
+                </Button>
               </div>
             }
           >
