@@ -23,7 +23,7 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-// ... (imports)
+import { useDocumentViewer } from "./document-viewer-context";
 import { updateDocumentProgress } from "./actions";
 import type { ChatDocument, OutlineItem } from "./types";
 
@@ -39,22 +39,8 @@ function clampPage(page: number, totalPages?: number): number {
   return totalPages && totalPages > 0 ? Math.min(clamped, totalPages) : clamped;
 }
 
-export function PdfViewer({
-  document: doc,
-  externalPage,
-  onOutlineExtracted,
-  onDocumentLoad,
-  onPageChange,
-}: {
-  document: ChatDocument;
-  externalPage?: number;
-  onOutlineExtracted?: (
-    outline: OutlineItem[] | null,
-    isLoading: boolean,
-  ) => void;
-  onDocumentLoad?: (pdfDocument: PDFDocumentProxy) => void;
-  onPageChange?: (page: number) => void;
-}) {
+export function PdfViewer({ document: doc }: { document: ChatDocument }) {
+  const { state: viewerState, actions: viewerActions } = useDocumentViewer();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -116,20 +102,19 @@ export function PdfViewer({
       setCurrentPage((p) => clampPage(p, pdf.numPages));
       setIsLoading(false);
 
-      if (onDocumentLoad) {
-        onDocumentLoad(pdf);
-      }
+      viewerActions.setPdfDocument(pdf);
 
-      if (onOutlineExtracted) {
-        try {
-          const outline = await pdf.getOutline();
-          onOutlineExtracted(outline as OutlineItem[] | null, false);
-        } catch {
-          onOutlineExtracted(null, false);
-        }
+      try {
+        const outline = await pdf.getOutline();
+        viewerActions.handleOutlineExtracted(
+          outline as OutlineItem[] | null,
+          false,
+        );
+      } catch {
+        viewerActions.handleOutlineExtracted(null, false);
       }
     },
-    [onOutlineExtracted, onDocumentLoad],
+    [viewerActions],
   );
 
   const onDocumentLoadError = useCallback(() => {
@@ -275,12 +260,10 @@ export function PdfViewer({
     return () => observer.disconnect();
   }, [numPages, debouncedUpdateProgress, debouncedUpdateUrl]);
 
-  // Notify parent of page changes
+  // Notify context of page changes
   useEffect(() => {
-    if (onPageChange) {
-      onPageChange(currentPage);
-    }
-  }, [currentPage, onPageChange]);
+    viewerActions.setCurrentPage(currentPage);
+  }, [currentPage, viewerActions]);
 
   // Scroll to initial page after document loads
   useEffect(() => {
@@ -303,14 +286,18 @@ export function PdfViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numPages]);
 
-  // Handle external page navigation
+  // Handle external page navigation (from outline panel)
   useEffect(() => {
-    if (externalPage && externalPage !== currentPage && numPages > 0) {
+    if (
+      viewerState.selectedPage &&
+      viewerState.selectedPage !== currentPage &&
+      numPages > 0
+    ) {
       Promise.resolve().then(() => {
-        scrollToPage(externalPage);
+        scrollToPage(viewerState.selectedPage!);
       });
     }
-  }, [externalPage, numPages, currentPage, scrollToPage]);
+  }, [viewerState.selectedPage, numPages, currentPage, scrollToPage]);
 
   const zoomIn = useCallback(() => {
     setScale((s) => Math.min(s + ZOOM_STEP, MAX_SCALE));

@@ -28,6 +28,34 @@ vi.mock("@/lib/hooks/use-keyboard-navigation", () => ({
   useKeyboardNavigation: () => {},
 }));
 
+const mockActions = {
+  setPdfDocument: vi.fn(),
+  setCurrentPage: vi.fn(),
+  handleOutlineExtracted: vi.fn(),
+  handlePageSelect: vi.fn(),
+  toggleOutline: vi.fn(),
+  closeOutline: vi.fn(),
+  toggleChat: vi.fn(),
+};
+
+const mockState = {
+  pdfDocument: null as null,
+  currentPage: 1,
+  outline: null as null,
+  isOutlineLoading: false,
+  hasOutline: false,
+  outlineVisible: false,
+  chatCollapsed: true,
+  selectedPage: undefined as number | undefined,
+};
+
+vi.mock("./document-viewer-context", () => ({
+  useDocumentViewer: () => ({
+    state: mockState,
+    actions: mockActions,
+  }),
+}));
+
 vi.mock("react-pdf", () => ({
   Document: ({
     children,
@@ -61,6 +89,15 @@ const mockDocument: ChatDocument = {
 describe("PdfViewer", () => {
   beforeEach(() => {
     mockUpdateDocumentProgress.mockClear();
+    Object.values(mockActions).forEach((fn) => fn.mockClear());
+    mockState.pdfDocument = null;
+    mockState.currentPage = 1;
+    mockState.outline = null;
+    mockState.isOutlineLoading = false;
+    mockState.hasOutline = false;
+    mockState.outlineVisible = false;
+    mockState.chatCollapsed = true;
+    mockState.selectedPage = undefined;
     vi.mocked(useSearchParams).mockReturnValue(
       new URLSearchParams() as ReturnType<typeof useSearchParams>,
     );
@@ -285,33 +322,22 @@ describe("PdfViewer", () => {
   });
 
   describe("Outline Extraction", () => {
-    it("calls onOutlineExtracted with outline data when PDF loads", async () => {
-      const mockOnOutlineExtracted = vi.fn();
-
-      render(
-        <PdfViewer
-          document={mockDocument}
-          onOutlineExtracted={mockOnOutlineExtracted}
-        />,
-      );
+    it("calls handleOutlineExtracted with outline data when PDF loads", async () => {
+      render(<PdfViewer document={mockDocument} />);
 
       await waitFor(() => {
-        expect(mockOnOutlineExtracted).toHaveBeenCalled();
+        expect(mockActions.handleOutlineExtracted).toHaveBeenCalled();
       });
     });
 
-    it("calls onOutlineExtracted with null when PDF has no outline", async () => {
-      const mockOnOutlineExtracted = vi.fn();
-
-      render(
-        <PdfViewer
-          document={mockDocument}
-          onOutlineExtracted={mockOnOutlineExtracted}
-        />,
-      );
+    it("calls handleOutlineExtracted with null when PDF has no outline", async () => {
+      render(<PdfViewer document={mockDocument} />);
 
       await waitFor(() => {
-        expect(mockOnOutlineExtracted).toHaveBeenCalledWith(null, false);
+        expect(mockActions.handleOutlineExtracted).toHaveBeenCalledWith(
+          null,
+          false,
+        );
       });
     });
   });
@@ -404,41 +430,30 @@ describe("PdfViewer", () => {
   });
 
   describe("Callbacks", () => {
-    it("calls onDocumentLoad when PDF loads", async () => {
-      const mockOnDocumentLoad = vi.fn();
-
-      render(
-        <PdfViewer
-          document={mockDocument}
-          onDocumentLoad={mockOnDocumentLoad}
-        />,
-      );
+    it("calls setPdfDocument when PDF loads", async () => {
+      render(<PdfViewer document={mockDocument} />);
 
       await waitFor(() => {
-        expect(mockOnDocumentLoad).toHaveBeenCalledWith(
+        expect(mockActions.setPdfDocument).toHaveBeenCalledWith(
           expect.objectContaining({ numPages: 50 }),
         );
       });
     });
 
-    it("calls onPageChange when current page changes", async () => {
-      const mockOnPageChange = vi.fn();
-
-      render(
-        <PdfViewer document={mockDocument} onPageChange={mockOnPageChange} />,
-      );
+    it("calls setCurrentPage when current page changes", async () => {
+      render(<PdfViewer document={mockDocument} />);
 
       await waitFor(() => {
         expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
       });
 
-      mockOnPageChange.mockClear();
+      mockActions.setCurrentPage.mockClear();
 
       const nextButton = screen.getByRole("button", { name: /next page/i });
       fireEvent.click(nextButton);
 
       await waitFor(() => {
-        expect(mockOnPageChange).toHaveBeenCalledWith(6);
+        expect(mockActions.setCurrentPage).toHaveBeenCalledWith(6);
       });
     });
   });

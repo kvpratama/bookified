@@ -9,17 +9,9 @@ import { BookOpen } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useDocumentViewer } from "./document-viewer-context";
 import type { OutlineItem } from "./types";
 import "./outline-panel.css";
-
-interface OutlinePanelProps {
-  outline: OutlineItem[] | null;
-  onPageSelect: (pageNumber: number) => void;
-  visible: boolean;
-  isLoading: boolean;
-  pdfDocument?: PDFDocumentProxy | null;
-  currentPage?: number;
-}
 
 /** Resolve a dest (string name or explicit array) to a 1-based page number. */
 async function resolveDestToPage(
@@ -87,14 +79,16 @@ function findActiveItem(
   return activeItem;
 }
 
-export function OutlinePanel({
-  outline,
-  visible,
-  isLoading,
-  onPageSelect,
-  pdfDocument,
-  currentPage = 1,
-}: OutlinePanelProps) {
+export function OutlinePanel() {
+  const { state, actions } = useDocumentViewer();
+  const {
+    outline,
+    outlineVisible: visible,
+    isOutlineLoading: isLoading,
+    pdfDocument,
+    currentPage,
+  } = state;
+  const { handlePageSelect: onPageSelect } = actions;
   const [pageMap, setPageMap] = useState<Map<OutlineItem, number>>(new Map());
   const activeRef = useRef<HTMLButtonElement>(null);
   const [, startTransition] = useTransition();
