@@ -105,22 +105,43 @@ export function ChatPanel({
     [handleSendMessage],
   );
 
-  // Collapsed state — show floating button
+  // Floating toggle button — morphs position from bottom-right FAB into the panel header
+  const fab = (
+    <button
+      onClick={onToggle}
+      aria-label={collapsed ? "Open chat" : "Close chat"}
+      className={cn(
+        "z-50 rounded-full bg-primary text-primary-foreground shadow-2xl transition-all duration-500 ease-in-out flex items-center justify-center",
+        collapsed
+          ? "fixed right-6 bottom-24 md:bottom-6 h-14 w-14 hover:scale-105 hover:bg-primary/90"
+          : "absolute right-3 top-3 h-8 w-8 bg-transparent text-muted-foreground shadow-none hover:bg-muted/50 hover:text-foreground",
+      )}
+    >
+      <MessageSquare
+        className={cn(
+          "absolute transition-all duration-300",
+          collapsed
+            ? "w-6 h-6 opacity-100 rotate-0"
+            : "w-4 h-4 opacity-0 rotate-90 scale-50",
+        )}
+      />
+      <X
+        className={cn(
+          "absolute transition-all duration-300",
+          collapsed
+            ? "w-4 h-4 opacity-0 -rotate-90 scale-50"
+            : "w-4 h-4 opacity-100 rotate-0",
+        )}
+      />
+    </button>
+  );
+
   if (collapsed) {
-    return (
-      <Button
-        onClick={onToggle}
-        size="icon"
-        className="fixed right-6 bottom-24 md:bottom-6 z-50 h-14 w-14 rounded-full shadow-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-105"
-        aria-label="Open chat"
-      >
-        <MessageSquare className="w-6 h-6" />
-      </Button>
-    );
+    return fab;
   }
 
   return (
-    <div className="flex flex-col h-full bg-background/50 min-w-[320px] md:min-w-[400px]">
+    <div className="flex flex-col h-full bg-background/50 min-w-[320px] md:min-w-[400px] relative">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-xl shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-2 min-w-0">
@@ -129,15 +150,7 @@ export function ChatPanel({
             Ask Document
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground shrink-0 transition-colors"
-          onClick={onToggle}
-          aria-label="Close chat"
-        >
-          <X className="w-4 h-4" />
-        </Button>
+        {fab}
       </div>
 
       {/* Messages */}
