@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileText, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn, formatBytes, formatDocumentName } from "@/lib/utils";
+import { formatBytes, formatDocumentName } from "@/lib/utils";
 import { ChatPanel } from "./chat-panel";
 import {
   DocumentViewerProvider,
@@ -45,28 +44,6 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
 function ChatPageContent({ document: doc }: { document: ChatDocument }) {
   const router = useRouter();
   const { state, actions } = useDocumentViewer();
-  const outlineRef = useRef<HTMLDivElement>(null);
-  const toggleButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Close outline when clicking outside
-  useEffect(() => {
-    if (!state.outlineVisible) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        outlineRef.current &&
-        !outlineRef.current.contains(target) &&
-        toggleButtonRef.current &&
-        !toggleButtonRef.current.contains(target)
-      ) {
-        actions.closeOutline();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [state.outlineVisible, actions]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
@@ -89,7 +66,6 @@ function ChatPageContent({ document: doc }: { document: ChatDocument }) {
         </Button>
         {state.hasOutline && (
           <Button
-            ref={toggleButtonRef}
             variant="ghost"
             size="icon"
             onClick={actions.toggleOutline}
@@ -139,39 +115,20 @@ function ChatPageContent({ document: doc }: { document: ChatDocument }) {
         </div>
       </div>
 
-      {/* Split-pane content */}
+      {/* Content */}
       <div className="flex flex-1 min-h-0 relative bg-muted/30">
-        {/* Outline pane */}
-        <div ref={outlineRef}>
-          <OutlinePanel />
-        </div>
-
-        {/* PDF viewer */}
-        <div
-          className={cn(
-            "flex-1 min-w-0 h-full overflow-hidden transition-all duration-400 ease-in-out",
-            !state.chatCollapsed && "hidden md:block",
-          )}
-        >
+        <div className="flex-1 min-w-0 h-full overflow-hidden">
           <PdfViewer document={doc} />
         </div>
-
-        {/* Chat panel */}
-        <div
-          className={cn(
-            "h-full transition-[width] duration-400 ease-in-out shrink-0 z-10 overflow-hidden",
-            state.chatCollapsed
-              ? "w-0 border-l-0"
-              : "w-full md:w-[400px] border-l border-border/50 shadow-2xl md:shadow-none bg-background absolute md:relative right-0 top-0 bottom-0",
-          )}
-        >
-          <ChatPanel
-            document={doc}
-            collapsed={state.chatCollapsed}
-            onToggle={actions.toggleChat}
-          />
-        </div>
       </div>
+
+      {/* Overlay panels */}
+      <OutlinePanel />
+      <ChatPanel
+        document={doc}
+        open={!state.chatCollapsed}
+        onToggle={actions.toggleChat}
+      />
     </div>
   );
 }

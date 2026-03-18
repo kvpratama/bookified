@@ -129,14 +129,14 @@ vi.mock("next/dynamic", () => ({
 // Mock ChatPanel
 vi.mock("./chat-panel", () => ({
   ChatPanel: ({
-    collapsed,
+    open,
     onToggle,
   }: {
-    collapsed: boolean;
+    open: boolean;
     onToggle: () => void;
     document: object;
   }) => (
-    <div data-testid="chat-panel" data-collapsed={collapsed}>
+    <div data-testid="chat-panel" data-open={open}>
       <button onClick={onToggle}>toggle-chat</button>
     </div>
   ),
@@ -264,7 +264,7 @@ describe("ChatPageClient", () => {
     render(<ChatPageClient document={mockDocument} />);
     const chatPanel = await screen.findByTestId("chat-panel");
 
-    expect(chatPanel).toHaveAttribute("data-collapsed", "true");
+    expect(chatPanel).toHaveAttribute("data-open", "false");
 
     // toggleChat is called via context
     fireEvent.click(screen.getByRole("button", { name: /toggle-chat/i }));
@@ -326,7 +326,7 @@ describe("ChatPageClient", () => {
       render(<ChatPageClient document={mockDocument} />);
 
       const chatPanel = await screen.findByTestId("chat-panel");
-      expect(chatPanel).toHaveAttribute("data-collapsed", "true");
+      expect(chatPanel).toHaveAttribute("data-open", "false");
     });
 
     it("initializes outlineVisible from URL search params", async () => {

@@ -111,8 +111,7 @@ describe("OutlinePanel", () => {
 
     render(<OutlinePanel />);
 
-    const panel = screen.getByTestId("outline-panel");
-    expect(panel).toHaveClass("w-0");
+    expect(screen.queryByTestId("outline-panel")).not.toBeInTheDocument();
   });
 
   it("is visible when visible prop is true", () => {
@@ -122,8 +121,7 @@ describe("OutlinePanel", () => {
 
     render(<OutlinePanel />);
 
-    const panel = screen.getByTestId("outline-panel");
-    expect(panel).not.toHaveClass("w-0");
+    expect(screen.getByTestId("outline-panel")).toBeInTheDocument();
   });
 
   it("does not render Document component", () => {

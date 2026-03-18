@@ -5,6 +5,7 @@ import { Send, Sparkles, MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useAppStore } from "@/lib/store";
 import type { ChatMessage } from "@/lib/store";
 import type { ChatDocument } from "./types";
@@ -17,11 +18,11 @@ const formatTime = (isoString: string) => {
 
 export function ChatPanel({
   document: doc,
-  collapsed,
+  open,
   onToggle,
 }: {
   document: ChatDocument;
-  collapsed: boolean;
+  open: boolean;
   onToggle: () => void;
 }) {
   const [inputValue, setInputValue] = useState("");
@@ -35,11 +36,11 @@ export function ChatPanel({
 
   // Scroll to bottom on new message or when opening the panel
   useEffect(() => {
-    if (!collapsed && scrollViewportRef.current) {
+    if (open && scrollViewportRef.current) {
       scrollViewportRef.current.scrollTop =
         scrollViewportRef.current.scrollHeight;
     }
-  }, [currentChat, isTyping, collapsed]);
+  }, [currentChat, isTyping, open]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -105,166 +106,167 @@ export function ChatPanel({
     [handleSendMessage],
   );
 
-  // Floating toggle button — morphs position from bottom-right FAB into the panel header
   const fab = (
     <button
       onClick={onToggle}
-      aria-label={collapsed ? "Open chat" : "Close chat"}
-      className={cn(
-        "z-50 rounded-full bg-primary text-primary-foreground shadow-2xl transition-all duration-500 ease-in-out flex items-center justify-center",
-        collapsed
-          ? "fixed right-6 bottom-24 md:bottom-6 h-14 w-14 hover:scale-105 hover:bg-primary/90"
-          : "absolute right-3 top-3 h-8 w-8 bg-transparent text-muted-foreground shadow-none hover:bg-muted/50 hover:text-foreground",
-      )}
+      aria-label={open ? "Close chat" : "Open chat"}
+      className="fixed right-6 bottom-24 md:bottom-6 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-2xl transition-all duration-500 ease-in-out flex items-center justify-center hover:scale-105 hover:bg-primary/90"
     >
-      <MessageSquare
-        className={cn(
-          "absolute transition-all duration-300",
-          collapsed
-            ? "w-6 h-6 opacity-100 rotate-0"
-            : "w-4 h-4 opacity-0 rotate-90 scale-50",
-        )}
-      />
-      <X
-        className={cn(
-          "absolute transition-all duration-300",
-          collapsed
-            ? "w-4 h-4 opacity-0 -rotate-90 scale-50"
-            : "w-4 h-4 opacity-100 rotate-0",
-        )}
-      />
+      <MessageSquare className="w-6 h-6" />
     </button>
   );
 
-  if (collapsed) {
-    return fab;
-  }
-
   return (
-    <div className="flex flex-col h-full bg-background/50 min-w-[320px] md:min-w-[400px] relative">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-xl shrink-0 z-10 shadow-sm">
-        <div className="flex items-center gap-2 min-w-0">
-          <Sparkles className="w-4 h-4 text-primary shrink-0 opacity-80" />
-          <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground/80 truncate">
-            Ask Document
-          </span>
-        </div>
-        {fab}
-      </div>
-
-      {/* Messages */}
-      <ScrollArea className="flex-1 px-4 py-6" viewportRef={scrollViewportRef}>
-        <div className="space-y-8 flex flex-col pb-4">
-          {currentChat.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center mx-auto max-w-[260px] animate-in fade-in duration-700 relative">
-              {/* Warm radial glow */}
-              <div className="absolute inset-0 -top-10 pointer-events-none">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-accent-foreground/[0.04] blur-3xl" />
-                <div className="absolute top-1/3 left-1/3 w-32 h-32 rounded-full bg-primary/[0.03] blur-2xl" />
+    <>
+      {!open && fab}
+      <Sheet
+        open={open}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) onToggle();
+        }}
+      >
+        <SheetContent
+          side="right"
+          showCloseButton={false}
+          className="w-full sm:max-w-[400px] p-0 gap-0"
+        >
+          <SheetTitle className="sr-only">Chat</SheetTitle>
+          <div className="flex flex-col h-full bg-background/50 relative">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-xl shrink-0 z-10 shadow-sm">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="w-4 h-4 text-primary shrink-0 opacity-80" />
+                <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground/80 truncate">
+                  Ask Document
+                </span>
               </div>
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-accent-foreground/10 to-primary/5 border border-accent-foreground/10 flex items-center justify-center mb-6 shadow-sm">
-                <Sparkles className="w-6 h-6 text-accent-foreground animate-breathe" />
-              </div>
-              <h3 className="relative text-xl font-serif text-foreground mb-3 tracking-tight">
-                Ask the Document
-              </h3>
-              <p className="relative text-[13px] text-muted-foreground leading-relaxed">
-                Extract key insights, summarize chapters, or find specific
-                references within this volume.
-              </p>
-            </div>
-          ) : (
-            currentChat.map((msg: ChatMessage) => (
-              <div
-                key={msg.id}
-                className={cn(
-                  "flex gap-4 max-w-[92%] animate-in fade-in slide-in-from-bottom-2 duration-500",
-                  msg.role === "user"
-                    ? "self-end flex-row-reverse"
-                    : "self-start",
-                )}
+              <button
+                onClick={onToggle}
+                aria-label="Close chat"
+                className="h-8 w-8 rounded-full bg-transparent text-muted-foreground shadow-none hover:bg-muted/50 hover:text-foreground flex items-center justify-center transition-all"
               >
-                {msg.role !== "user" && (
-                  <div className="mt-1 shrink-0">
-                    <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
-                      <Sparkles className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <ScrollArea
+              className="flex-1 px-4 py-6"
+              viewportRef={scrollViewportRef}
+            >
+              <div className="space-y-8 flex flex-col pb-4">
+                {currentChat.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center mx-auto max-w-[260px] animate-in fade-in duration-700 relative">
+                    {/* Warm radial glow */}
+                    <div className="absolute inset-0 -top-10 pointer-events-none">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-accent-foreground/[0.04] blur-3xl" />
+                      <div className="absolute top-1/3 left-1/3 w-32 h-32 rounded-full bg-primary/[0.03] blur-2xl" />
+                    </div>
+                    <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-accent-foreground/10 to-primary/5 border border-accent-foreground/10 flex items-center justify-center mb-6 shadow-sm">
+                      <Sparkles className="w-6 h-6 text-accent-foreground animate-breathe" />
+                    </div>
+                    <h3 className="relative text-xl font-serif text-foreground mb-3 tracking-tight">
+                      Ask the Document
+                    </h3>
+                    <p className="relative text-[13px] text-muted-foreground leading-relaxed">
+                      Extract key insights, summarize chapters, or find specific
+                      references within this volume.
+                    </p>
+                  </div>
+                ) : (
+                  currentChat.map((msg: ChatMessage) => (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        "flex gap-4 max-w-[92%] animate-in fade-in slide-in-from-bottom-2 duration-500",
+                        msg.role === "user"
+                          ? "self-end flex-row-reverse"
+                          : "self-start",
+                      )}
+                    >
+                      {msg.role !== "user" && (
+                        <div className="mt-1 shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
+                      )}
+
+                      <div
+                        className={cn(
+                          "flex flex-col gap-1.5 min-w-0",
+                          msg.role === "user" ? "items-end" : "items-start",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "text-[14px]",
+                            msg.role === "user"
+                              ? "bg-foreground text-background px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm font-sans font-medium"
+                              : "text-foreground relative pl-5 py-1 border-l-[3px] border-primary/20 font-serif text-[15.5px] leading-relaxed",
+                          )}
+                        >
+                          {msg.content}
+                        </div>
+                        <span
+                          className={cn(
+                            "text-[10px] text-muted-foreground/60 font-medium select-none tracking-wide",
+                            msg.role !== "user" && "ml-5",
+                          )}
+                        >
+                          {formatTime(msg.timestamp)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {isTyping && (
+                  <div className="flex gap-4 max-w-[92%] self-start animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="mt-1 shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div className="pl-5 py-2 border-l-[3px] border-primary/20 flex gap-1.5 items-center h-[36px]">
+                      <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                      <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
                     </div>
                   </div>
                 )}
+              </div>
+            </ScrollArea>
 
-                <div
-                  className={cn(
-                    "flex flex-col gap-1.5 min-w-0",
-                    msg.role === "user" ? "items-end" : "items-start",
-                  )}
+            {/* Input */}
+            <div className="p-4 bg-background/95 backdrop-blur-xl border-t border-border/40 shrink-0 relative z-20 shadow-sm">
+              <div className="relative flex items-center overflow-hidden shadow-sm rounded-full bg-muted/30 border border-border/50 transition-all focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/30 focus-within:bg-background focus-within:shadow-md">
+                <Input
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask about this document…"
+                  aria-label="Chat message input"
+                  className="pr-14 pl-5 py-6 text-[14px] bg-transparent dark:bg-transparent border-none focus-visible:ring-0 shadow-none font-sans rounded-full"
+                />
+                <Button
+                  size="icon"
+                  className="absolute right-1.5 w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-sm disabled:opacity-50"
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isTyping}
                 >
-                  <div
-                    className={cn(
-                      "text-[14px]",
-                      msg.role === "user"
-                        ? "bg-foreground text-background px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm font-sans font-medium"
-                        : "text-foreground relative pl-5 py-1 border-l-[3px] border-primary/20 font-serif text-[15.5px] leading-relaxed",
-                    )}
-                  >
-                    {msg.content}
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[10px] text-muted-foreground/60 font-medium select-none tracking-wide",
-                      msg.role !== "user" && "ml-5",
-                    )}
-                  >
-                    {formatTime(msg.timestamp)}
-                  </span>
-                </div>
+                  <Send className="w-4 h-4 ml-0.5" />
+                  <span className="sr-only">Send message</span>
+                </Button>
               </div>
-            ))
-          )}
-
-          {isTyping && (
-            <div className="flex gap-4 max-w-[92%] self-start animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="mt-1 shrink-0">
-                <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
-                  <Sparkles className="w-3.5 h-3.5" />
-                </div>
-              </div>
-              <div className="pl-5 py-2 border-l-[3px] border-primary/20 flex gap-1.5 items-center h-[36px]">
-                <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
-              </div>
+              <p className="text-center text-[10px] text-muted-foreground/60 mt-3 font-medium select-none tracking-wide uppercase">
+                AI can make mistakes. Verify important info.
+              </p>
             </div>
-          )}
-        </div>
-      </ScrollArea>
-
-      {/* Input */}
-      <div className="p-4 bg-background/95 backdrop-blur-xl border-t border-border/40 shrink-0 relative z-20 shadow-sm">
-        <div className="relative flex items-center overflow-hidden shadow-sm rounded-full bg-muted/30 border border-border/50 transition-all focus-within:ring-1 focus-within:ring-primary/30 focus-within:border-primary/30 focus-within:bg-background focus-within:shadow-md">
-          <Input
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about this document…"
-            aria-label="Chat message input"
-            className="pr-14 pl-5 py-6 text-[14px] bg-transparent dark:bg-transparent border-none focus-visible:ring-0 shadow-none font-sans rounded-full"
-          />
-          <Button
-            size="icon"
-            className="absolute right-1.5 w-9 h-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-sm disabled:opacity-50"
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isTyping}
-          >
-            <Send className="w-4 h-4 ml-0.5" />
-            <span className="sr-only">Send message</span>
-          </Button>
-        </div>
-        <p className="text-center text-[10px] text-muted-foreground/60 mt-3 font-medium select-none tracking-wide uppercase">
-          AI can make mistakes. Verify important info.
-        </p>
-      </div>
-    </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

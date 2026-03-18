@@ -45,7 +45,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={true}
+          open={false}
           onToggle={mockOnToggle}
         />,
       );
@@ -58,7 +58,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={true}
+          open={false}
           onToggle={mockOnToggle}
         />,
       );
@@ -71,7 +71,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={true}
+          open={false}
           onToggle={mockOnToggle}
         />,
       );
@@ -86,7 +86,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -97,7 +97,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -111,7 +111,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -122,7 +122,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -135,7 +135,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -169,7 +169,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -185,7 +185,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -198,7 +198,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -214,7 +214,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -237,7 +237,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -253,7 +253,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -275,7 +275,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -291,7 +291,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
@@ -310,7 +310,7 @@ describe("ChatPanel", () => {
       render(
         <ChatPanel
           document={mockDocument}
-          collapsed={false}
+          open={true}
           onToggle={mockOnToggle}
         />,
       );
