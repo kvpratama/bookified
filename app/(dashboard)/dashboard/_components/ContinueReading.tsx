@@ -6,6 +6,7 @@ import { Play, BookOpen } from "lucide-react";
 import type { Tables } from "@/lib/supabase/database.types";
 import { getBlobUrl, formatDocumentName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 interface ContinueReadingProps {
   document: Tables<"documents">;
@@ -95,12 +96,7 @@ export function ContinueReading({ document }: ContinueReadingProps) {
                   <span>Progress</span>
                   <span>{progress}%</span>
                 </div>
-                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
+                <Progress value={progress} className="h-1.5 bg-muted" />
               </div>
             )}
           </div>
