@@ -381,12 +381,16 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
     onRight: () => scrollToPage(currentPage + 1),
   });
 
-  const pageWidth = containerWidth
-    ? Math.min(containerWidth, MAX_PAGE_WIDTH) * scale
+  // Render at max scale to avoid pixelation when zooming in
+  // CSS transform scales down for lower zoom levels
+  const renderWidth = containerWidth
+    ? Math.min(containerWidth, MAX_PAGE_WIDTH) * MAX_SCALE
     : undefined;
 
   // Fallback estimated height for placeholder pages (letter-size aspect ratio)
-  const estimatedPageHeight = pageWidth ? pageWidth * 1.294 : 800;
+  const estimatedPageHeight = renderWidth
+    ? (renderWidth / MAX_SCALE) * 1.294
+    : 800;
 
   const fileUrl = getBlobUrl(doc.blob_url);
 
@@ -418,93 +422,111 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
             </div>
           )}
 
-          <Document
-            file={fileUrl}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            onItemClick={onDocumentItemClick}
-            loading={null}
-            className="flex flex-col items-center [&_.react-pdf__Page]:w-full! [&_.react-pdf__Page_canvas]:w-full! [&_.react-pdf__Page_canvas]:h-auto!"
-            error={
-              <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
-                <div className="w-14 h-14 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mb-5">
-                  <FileText className="w-6 h-6 text-destructive" />
-                </div>
-                <h3 className="text-lg font-serif text-foreground mb-2 tracking-tight">
-                  Unable to Load Document
-                </h3>
-                <p className="text-[13px] text-muted-foreground max-w-[260px] leading-relaxed mb-5">
-                  The document could not be rendered. It may be corrupted or
-                  temporarily unavailable.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.location.reload()}
-                >
-                  Try again
-                </Button>
-              </div>
-            }
+          {/* Wrapper clips overflow and sets visual width for proper centering */}
+          <div
+            style={{
+              width: renderWidth
+                ? `${renderWidth * (scale / MAX_SCALE)}px`
+                : "auto",
+              overflow: "hidden",
+            }}
           >
-            {numPages > 0 &&
-              Array.from({ length: numPages }, (_, i) => i + 1).map(
-                (pageNumber) => {
-                  const shouldRender = renderedPageSet.has(pageNumber);
-                  const placeholderHeight =
-                    pageHeightsMap.current.get(pageNumber) ??
-                    estimatedPageHeight;
-                  return (
-                    <div
-                      key={pageNumber}
-                      ref={(el) => setPageRef(pageNumber, el)}
-                      data-page-number={pageNumber}
-                      className={cn(
-                        "rounded-sm overflow-hidden",
-                        shouldRender && "shadow-2xl bg-white",
-                        shouldRender &&
-                          theme === "dark" &&
-                          "invert hue-rotate-180",
-                      )}
-                      style={{
-                        width: containerWidth ? "100%" : "auto",
-                        maxWidth: pageWidth ? `${pageWidth}px` : "none",
-                        height: shouldRender
-                          ? "auto"
-                          : `${placeholderHeight}px`,
-                        marginBottom:
-                          pageNumber < numPages ? `${PAGE_GAP}px` : 0,
-                      }}
-                    >
-                      {shouldRender && (
-                        <Page
-                          pageNumber={pageNumber}
-                          width={pageWidth}
-                          className="overflow-hidden"
-                          onRenderSuccess={() => {
-                            const el = pageRefsMap.current.get(pageNumber);
-                            if (el) {
-                              pageHeightsMap.current.set(
-                                pageNumber,
-                                el.offsetHeight,
-                              );
-                            }
-                          }}
-                          loading={
-                            <div
-                              className="flex items-center justify-center"
-                              style={{ height: `${placeholderHeight}px` }}
-                            >
-                              <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
-                            </div>
-                          }
-                        />
-                      )}
+            {/* Scale container via CSS transform for instant zoom without re-rendering */}
+            <div
+              style={{
+                width: renderWidth ? `${renderWidth}px` : "auto",
+                transform: `scale(${scale / MAX_SCALE})`,
+                transformOrigin: "top left",
+              }}
+            >
+              <Document
+                file={fileUrl}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
+                onItemClick={onDocumentItemClick}
+                loading={null}
+                className="flex flex-col items-center [&_.react-pdf__Page]:w-full! [&_.react-pdf__Page_canvas]:w-full! [&_.react-pdf__Page_canvas]:h-auto!"
+                error={
+                  <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
+                    <div className="w-14 h-14 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mb-5">
+                      <FileText className="w-6 h-6 text-destructive" />
                     </div>
-                  );
-                },
-              )}
-          </Document>
+                    <h3 className="text-lg font-serif text-foreground mb-2 tracking-tight">
+                      Unable to Load Document
+                    </h3>
+                    <p className="text-[13px] text-muted-foreground max-w-[260px] leading-relaxed mb-5">
+                      The document could not be rendered. It may be corrupted or
+                      temporarily unavailable.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.location.reload()}
+                    >
+                      Try again
+                    </Button>
+                  </div>
+                }
+              >
+                {numPages > 0 &&
+                  Array.from({ length: numPages }, (_, i) => i + 1).map(
+                    (pageNumber) => {
+                      const shouldRender = renderedPageSet.has(pageNumber);
+                      const placeholderHeight =
+                        pageHeightsMap.current.get(pageNumber) ??
+                        estimatedPageHeight;
+                      return (
+                        <div
+                          key={pageNumber}
+                          ref={(el) => setPageRef(pageNumber, el)}
+                          data-page-number={pageNumber}
+                          className={cn(
+                            "rounded-sm overflow-hidden",
+                            shouldRender && "shadow-2xl bg-white",
+                            shouldRender &&
+                              theme === "dark" &&
+                              "invert hue-rotate-180",
+                          )}
+                          style={{
+                            width: "100%",
+                            height: shouldRender
+                              ? "auto"
+                              : `${placeholderHeight}px`,
+                            marginBottom:
+                              pageNumber < numPages ? `${PAGE_GAP}px` : 0,
+                          }}
+                        >
+                          {shouldRender && (
+                            <Page
+                              pageNumber={pageNumber}
+                              width={renderWidth}
+                              className="overflow-hidden"
+                              onRenderSuccess={() => {
+                                const el = pageRefsMap.current.get(pageNumber);
+                                if (el) {
+                                  pageHeightsMap.current.set(
+                                    pageNumber,
+                                    el.offsetHeight,
+                                  );
+                                }
+                              }}
+                              loading={
+                                <div
+                                  className="flex items-center justify-center"
+                                  style={{ height: `${placeholderHeight}px` }}
+                                >
+                                  <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                                </div>
+                              }
+                            />
+                          )}
+                        </div>
+                      );
+                    },
+                  )}
+              </Document>
+            </div>
+          </div>
         </div>
       </ScrollArea>
 
