@@ -47,6 +47,19 @@ export function ChatPanel({
     }
   }, [currentChat, isTyping, open]);
 
+  // Focus input when the panel opens
+  useEffect(() => {
+    if (open) {
+      // Small timeout to allow the sheet portal/animation to render
+      const timer = setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {

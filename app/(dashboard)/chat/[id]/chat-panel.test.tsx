@@ -142,6 +142,24 @@ describe("ChatPanel", () => {
       const sendButton = screen.getByRole("button", { name: /send message/i });
       expect(sendButton).toBeDisabled();
     });
+
+    it("focuses the input when the panel opens", () => {
+      vi.useFakeTimers();
+      render(
+        <ChatPanel
+          document={mockDocument}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+      const input = screen.getByLabelText(/chat message input/i);
+      expect(input).not.toHaveFocus();
+
+      vi.advanceTimersByTime(150); // Advance past the 100ms timeout
+
+      expect(input).toHaveFocus();
+      vi.useRealTimers();
+    });
   });
 
   // --- With messages ---
