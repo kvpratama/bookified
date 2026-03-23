@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useTransition } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "@/lib/pdf-worker";
@@ -91,7 +91,6 @@ export function OutlinePanel() {
   } = state;
   const { handlePageSelect: onPageSelect } = actions;
   const [pageMap, setPageMap] = useState<Map<OutlineItem, number>>(new Map());
-  const activeRef = useRef<HTMLButtonElement>(null);
   const [, startTransition] = useTransition();
 
   // Resolve all outline destinations to page numbers once (non-blocking)
@@ -116,15 +115,11 @@ export function OutlinePanel() {
   const activeItem =
     pageMap.size > 0 ? findActiveItem(pageMap, currentPage) : null;
 
-  // Scroll the active item into view within the panel
-  useEffect(() => {
-    if (activeRef.current && visible) {
-      activeRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    }
-  }, [activeItem, visible]);
+  // Callback ref: scroll the active button into view once it mounts
+  const activeCallbackRef = useCallback((node: HTMLButtonElement | null) => {
+    if (!node) return;
+    node.scrollIntoView({ block: "center", behavior: "instant" });
+  }, []);
 
   const handleItemClick = useCallback(
     async (dest: unknown) => {
@@ -150,13 +145,9 @@ export function OutlinePanel() {
       const isActive = item === activeItem;
 
       return (
-        <div
-          key={`${depth}-${index}-${item.title}`}
-          className="outline-item-enter"
-          style={{ animationDelay: `${(depth * items.length + index) * 40}ms` }}
-        >
+        <div key={`${depth}-${index}-${item.title}`}>
           <button
-            ref={isActive ? activeRef : undefined}
+            ref={isActive ? activeCallbackRef : undefined}
             onClick={() => handleItemClick(item.dest)}
             className={cn("outline-item-btn", depth === 0 && "font-medium")}
           >
