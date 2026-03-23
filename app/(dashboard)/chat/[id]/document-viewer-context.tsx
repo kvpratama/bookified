@@ -1,10 +1,15 @@
 "use client";
 
-import { createContext, use, useState, useCallback } from "react";
+import { createContext, use, useState, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { OutlineItem } from "./types";
+
+export interface PageNavRequest {
+  page: number;
+  seq: number;
+}
 
 interface DocumentViewerState {
   pdfDocument: PDFDocumentProxy | null;
@@ -14,7 +19,7 @@ interface DocumentViewerState {
   hasOutline: boolean;
   outlineVisible: boolean;
   chatCollapsed: boolean;
-  selectedPage: number | undefined;
+  selectedPage: PageNavRequest | undefined;
 }
 
 interface DocumentViewerActions {
@@ -64,7 +69,10 @@ export function DocumentViewerProvider({ children }: { children: ReactNode }) {
   const [isOutlineLoading, setIsOutlineLoading] = useState(true);
   const [hasOutline, setHasOutline] = useState(false);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
-  const [selectedPage, setSelectedPage] = useState<number | undefined>();
+  const [selectedPage, setSelectedPage] = useState<
+    PageNavRequest | undefined
+  >();
+  const navSeqRef = useRef(0);
   const [currentPage, setCurrentPage] = useState(1);
 
   const updateUrl = useCallback(
@@ -95,8 +103,8 @@ export function DocumentViewerProvider({ children }: { children: ReactNode }) {
   );
 
   const handlePageSelect = useCallback((pageNumber: number) => {
-    setSelectedPage(pageNumber);
-    setTimeout(() => setSelectedPage(undefined), 100);
+    navSeqRef.current += 1;
+    setSelectedPage({ page: pageNumber, seq: navSeqRef.current });
   }, []);
 
   const toggleChat = useCallback(() => {

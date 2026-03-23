@@ -67,6 +67,8 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   const [pageInputValue, setPageInputValue] = useState("");
   const [containerWidth, setContainerWidth] = useState<number | undefined>();
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
+  const [navTarget, setNavTarget] = useState<number | null>(null);
+  const lastHandledSeq = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const zoomWrapperRef = useRef<HTMLDivElement>(null);
@@ -159,16 +161,35 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
       if (el && scrollViewportRef.current) {
         isScrollingToPage.current = true;
         pageRatioMap.current.clear();
+        const distance = Math.abs(newPage - currentPage);
+        const isShortJump = distance <= VIRTUALIZATION_BUFFER;
         setCurrentPage(newPage);
         debouncedUpdateProgress(newPage);
         updateUrl(newPage);
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-        setTimeout(() => {
-          isScrollingToPage.current = false;
-        }, 800);
+
+        if (isShortJump) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(() => {
+            isScrollingToPage.current = false;
+          }, 800);
+        } else {
+          // Long jump: use instant scroll to avoid fighting with layout shifts
+          // from virtualization. Re-scroll after layout settles to correct for
+          // placeholder height mismatches.
+          el.scrollIntoView({ behavior: "instant", block: "start" });
+          requestAnimationFrame(() => {
+            const refreshed = pageRefsMap.current.get(newPage);
+            if (refreshed) {
+              refreshed.scrollIntoView({ behavior: "instant", block: "start" });
+            }
+            setTimeout(() => {
+              isScrollingToPage.current = false;
+            }, 200);
+          });
+        }
       }
     },
-    [numPages, debouncedUpdateProgress, updateUrl],
+    [numPages, currentPage, debouncedUpdateProgress, updateUrl],
   );
 
   const onDocumentItemClick = useCallback(
@@ -292,17 +313,26 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   }, [numPages]);
 
   // Handle external page navigation (from outline panel)
+  // Step 1: When a new nav request arrives, set navTarget to force-render the page
   useEffect(() => {
-    if (
-      viewerState.selectedPage &&
-      viewerState.selectedPage !== currentPage &&
-      numPages > 0
-    ) {
-      Promise.resolve().then(() => {
-        scrollToPage(viewerState.selectedPage!);
-      });
-    }
-  }, [viewerState.selectedPage, numPages, currentPage, scrollToPage]);
+    const req = viewerState.selectedPage;
+    if (!req || req.seq <= lastHandledSeq.current || numPages === 0) return;
+    lastHandledSeq.current = req.seq;
+    const target = clampPage(req.page, numPages);
+    setNavTarget(target);
+  }, [viewerState.selectedPage, numPages]);
+
+  // Step 2: Once the target page is rendered in the DOM, scroll to it
+  useEffect(() => {
+    if (navTarget === null) return;
+    requestAnimationFrame(() => {
+      const el = pageRefsMap.current.get(navTarget);
+      if (el) {
+        scrollToPage(navTarget);
+      }
+      setNavTarget(null);
+    });
+  }, [navTarget, scrollToPage]);
 
   const debouncedCommitZoom = useDebouncedCallback<[number]>(
     (newScale: number) => {
@@ -421,6 +451,17 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
     for (
       let i = currentPage - VIRTUALIZATION_BUFFER;
       i <= currentPage + VIRTUALIZATION_BUFFER;
+      i++
+    ) {
+      if (i >= 1 && i <= numPages) renderedPageSet.add(i);
+    }
+  }
+
+  // Force-render pages around the navigation target so the DOM element exists
+  if (navTarget !== null) {
+    for (
+      let i = navTarget - VIRTUALIZATION_BUFFER;
+      i <= navTarget + VIRTUALIZATION_BUFFER;
       i++
     ) {
       if (i >= 1 && i <= numPages) renderedPageSet.add(i);
