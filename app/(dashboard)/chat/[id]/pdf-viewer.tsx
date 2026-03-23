@@ -59,7 +59,9 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   };
 
   const [currentPage, setCurrentPage] = useState(getInitialPage());
-  const [scale, setScale] = useState(1.0);
+  const [committedScale, setCommittedScale] = useState(1.0);
+  const scaleRef = useRef(1.0);
+  const isZooming = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInputValue, setPageInputValue] = useState("");
@@ -67,6 +69,8 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const zoomWrapperRef = useRef<HTMLDivElement>(null);
+  const zoomInnerRef = useRef<HTMLDivElement>(null);
   const pageRefsMap = useRef<Map<number, HTMLDivElement>>(new Map());
   const pageHeightsMap = useRef<Map<number, number>>(new Map());
   const pageRatioMap = useRef<Map<number, number>>(new Map());
@@ -182,6 +186,7 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (isZooming.current) return;
         let changed = false;
         for (const entry of entries) {
           const pageNum = Number(
@@ -223,7 +228,7 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (isScrollingToPage.current) return;
+        if (isScrollingToPage.current || isZooming.current) return;
 
         for (const entry of entries) {
           const pageNum = Number(
@@ -299,17 +304,59 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
     }
   }, [viewerState.selectedPage, numPages, currentPage, scrollToPage]);
 
+  const debouncedCommitZoom = useDebouncedCallback<[number]>(
+    (newScale: number) => {
+      isZooming.current = false;
+      setCommittedScale(newScale);
+    },
+    300,
+  );
+
+  const applyZoom = useCallback(
+    (newScale: number) => {
+      const oldScale = scaleRef.current;
+      if (newScale === oldScale) return;
+
+      isZooming.current = true;
+      scaleRef.current = newScale;
+
+      const viewport = scrollViewportRef.current;
+      const wrapper = zoomWrapperRef.current;
+      const inner = zoomInnerRef.current;
+      const renderW = containerWidth
+        ? Math.min(containerWidth, MAX_PAGE_WIDTH) * MAX_SCALE
+        : undefined;
+
+      if (wrapper && inner && renderW) {
+        wrapper.style.width = `${renderW * (newScale / MAX_SCALE)}px`;
+        inner.style.transform = `scale(${newScale / MAX_SCALE})`;
+      }
+
+      if (viewport) {
+        const scrollRatio = oldScale > 0 ? newScale / oldScale : 1;
+        viewport.scrollTop = viewport.scrollTop * scrollRatio;
+      }
+
+      debouncedCommitZoom(newScale);
+    },
+    [containerWidth, debouncedCommitZoom],
+  );
+
   const zoomIn = useCallback(() => {
-    setScale((s) =>
-      Math.min(Math.round((s + ZOOM_STEP) * 100) / 100, MAX_SCALE),
+    const next = Math.min(
+      Math.round((scaleRef.current + ZOOM_STEP) * 100) / 100,
+      MAX_SCALE,
     );
-  }, []);
+    applyZoom(next);
+  }, [applyZoom]);
 
   const zoomOut = useCallback(() => {
-    setScale((s) =>
-      Math.max(Math.round((s - ZOOM_STEP) * 100) / 100, MIN_SCALE),
+    const next = Math.max(
+      Math.round((scaleRef.current - ZOOM_STEP) * 100) / 100,
+      MIN_SCALE,
     );
-  }, []);
+    applyZoom(next);
+  }, [applyZoom]);
 
   const handlePageClick = useCallback(() => {
     setIsEditingPage(true);
@@ -428,18 +475,20 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
 
           {/* Wrapper clips overflow and sets visual width for proper centering */}
           <div
+            ref={zoomWrapperRef}
             style={{
               width: renderWidth
-                ? `${renderWidth * (scale / MAX_SCALE)}px`
+                ? `${renderWidth * (committedScale / MAX_SCALE)}px`
                 : "auto",
               overflow: "hidden",
             }}
           >
             {/* Scale container via CSS transform for instant zoom without re-rendering */}
             <div
+              ref={zoomInnerRef}
               style={{
                 width: renderWidth ? `${renderWidth}px` : "auto",
-                transform: `scale(${scale / MAX_SCALE})`,
+                transform: `scale(${committedScale / MAX_SCALE})`,
                 transformOrigin: "top left",
               }}
             >
@@ -591,20 +640,20 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
               size="icon"
               className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               onClick={zoomOut}
-              disabled={scale <= MIN_SCALE}
+              disabled={committedScale <= MIN_SCALE}
             >
               <ZoomOut className="w-4 h-4" />
               <span className="sr-only">Zoom out</span>
             </Button>
             <span className="text-xs font-semibold tabular-nums min-w-[50px] text-center select-none text-foreground/80 tracking-wide">
-              {Math.round(scale * 100)}%
+              {Math.round(committedScale * 100)}%
             </span>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               onClick={zoomIn}
-              disabled={scale >= MAX_SCALE}
+              disabled={committedScale >= MAX_SCALE}
             >
               <ZoomIn className="w-4 h-4" />
               <span className="sr-only">Zoom in</span>

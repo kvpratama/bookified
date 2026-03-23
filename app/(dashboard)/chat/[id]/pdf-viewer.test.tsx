@@ -378,7 +378,9 @@ describe("PdfViewer", () => {
       const zoomInButton = screen.getByRole("button", { name: /zoom in/i });
       fireEvent.click(zoomInButton);
 
-      expect(screen.getByText("110%")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("110%")).toBeInTheDocument();
+      });
     });
 
     it("zoom out button decreases the displayed zoom percentage", async () => {
@@ -391,7 +393,9 @@ describe("PdfViewer", () => {
       const zoomOutButton = screen.getByRole("button", { name: /zoom out/i });
       fireEvent.click(zoomOutButton);
 
-      expect(screen.getByText("90%")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("90%")).toBeInTheDocument();
+      });
     });
 
     it("zoom in button is disabled at max scale (200%)", async () => {
@@ -407,7 +411,9 @@ describe("PdfViewer", () => {
         fireEvent.click(zoomInButton);
       }
 
-      expect(screen.getByText("200%")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("200%")).toBeInTheDocument();
+      });
       expect(zoomInButton).toBeDisabled();
     });
 
@@ -424,7 +430,9 @@ describe("PdfViewer", () => {
         fireEvent.click(zoomOutButton);
       }
 
-      expect(screen.getByText("50%")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("50%")).toBeInTheDocument();
+      });
       expect(zoomOutButton).toBeDisabled();
     });
   });
