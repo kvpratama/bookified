@@ -27,9 +27,9 @@ import { useDocumentViewer } from "./document-viewer-context";
 import { updateDocumentProgress } from "./actions";
 import type { ChatDocument, OutlineItem } from "./types";
 
-const ZOOM_STEP = 0.15;
+const ZOOM_STEP = 0.1;
 const MIN_SCALE = 0.5;
-const MAX_SCALE = 3.0;
+const MAX_SCALE = 2.0;
 const MAX_PAGE_WIDTH = 900;
 const PAGE_GAP = 16;
 const VIRTUALIZATION_BUFFER = 3; // render this many pages above/below viewport
@@ -300,11 +300,15 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
   }, [viewerState.selectedPage, numPages, currentPage, scrollToPage]);
 
   const zoomIn = useCallback(() => {
-    setScale((s) => Math.min(s + ZOOM_STEP, MAX_SCALE));
+    setScale((s) =>
+      Math.min(Math.round((s + ZOOM_STEP) * 100) / 100, MAX_SCALE),
+    );
   }, []);
 
   const zoomOut = useCallback(() => {
-    setScale((s) => Math.max(s - ZOOM_STEP, MIN_SCALE));
+    setScale((s) =>
+      Math.max(Math.round((s - ZOOM_STEP) * 100) / 100, MIN_SCALE),
+    );
   }, []);
 
   const handlePageClick = useCallback(() => {
@@ -481,11 +485,12 @@ export function PdfViewer({ document: doc }: { document: ChatDocument }) {
                           ref={(el) => setPageRef(pageNumber, el)}
                           data-page-number={pageNumber}
                           className={cn(
-                            "rounded-sm overflow-hidden",
-                            shouldRender && "shadow-2xl bg-white",
+                            "rounded-xl overflow-hidden",
+                            // shouldRender && "shadow-2xl",
+                            shouldRender && theme !== "dark" && "bg-white",
                             shouldRender &&
                               theme === "dark" &&
-                              "invert hue-rotate-180",
+                              "pdf-dark-theme",
                           )}
                           style={{
                             width: "100%",
