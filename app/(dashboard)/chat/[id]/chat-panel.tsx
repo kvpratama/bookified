@@ -5,7 +5,12 @@ import { Send, Sparkles, MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useAppStore } from "@/lib/store";
 import type { ChatMessage } from "@/lib/store";
 import type { ChatDocument } from "./types";
@@ -107,13 +112,14 @@ export function ChatPanel({
   );
 
   const fab = (
-    <button
+    <Button
       onClick={onToggle}
       aria-label={open ? "Close chat" : "Open chat"}
-      className="fixed right-6 bottom-24 md:bottom-6 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-2xl transition-all duration-500 ease-in-out flex items-center justify-center hover:scale-105 hover:bg-primary/90"
+      size="icon"
+      className="fixed right-6 bottom-24 md:bottom-6 z-50 h-14 w-14 rounded-full shadow-2xl transition-all duration-500 ease-in-out hover:scale-105"
     >
       <MessageSquare className="w-6 h-6" />
-    </button>
+    </Button>
   );
 
   return (
@@ -140,13 +146,16 @@ export function ChatPanel({
                   Ask Document
                 </span>
               </div>
-              <button
-                onClick={onToggle}
-                aria-label="Close chat"
-                className="h-8 w-8 rounded-full bg-transparent text-muted-foreground shadow-none hover:bg-muted/50 hover:text-foreground flex items-center justify-center transition-all"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <SheetClose asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Close chat"
+                  className="rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </SheetClose>
             </div>
 
             {/* Messages */}
