@@ -107,6 +107,54 @@ describe("ChatPanel", () => {
       expect(mockOnToggle).toHaveBeenCalledTimes(1);
     });
 
+    it("keeps the launcher button in the DOM but hides it from accessibility tree", () => {
+      render(
+        <ChatPanel
+          document={mockDocument}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+      // Use a more robust way to find the button since its accessible name
+      // might be reported as empty when inside an aria-hidden container
+      const launcher = screen
+        .getAllByRole("button", { hidden: true })
+        .find((b) => b.getAttribute("aria-label") === "Open chat");
+      expect(launcher).toBeDefined();
+      expect(launcher).toHaveAttribute("aria-hidden", "true");
+      expect(launcher).toHaveAttribute("tabIndex", "-1");
+      expect(launcher).toHaveClass("opacity-0", "pointer-events-none");
+    });
+
+    it("restores focus to the launcher button when closed", () => {
+      vi.useFakeTimers();
+      const { rerender } = render(
+        <ChatPanel
+          document={mockDocument}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+
+      const closeButton = screen.getByRole("button", { name: /close chat/i });
+      fireEvent.click(closeButton);
+
+      // Simulate the state change that should happen in the parent component
+      rerender(
+        <ChatPanel
+          document={mockDocument}
+          open={false}
+          onToggle={mockOnToggle}
+        />,
+      );
+
+      vi.advanceTimersByTime(10); // Wait for our setTimeout
+      const launcher = screen.getByRole("button", { name: /open chat/i });
+      expect(launcher).toHaveFocus();
+
+      vi.useRealTimers();
+    });
+
     it("shows empty state 'Ask the Document' when no messages", () => {
       render(
         <ChatPanel

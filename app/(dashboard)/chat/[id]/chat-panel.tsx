@@ -34,6 +34,7 @@ export function ChatPanel({
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
   const replyTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const { chats, addMessage } = useAppStore();
@@ -126,10 +127,16 @@ export function ChatPanel({
 
   const fab = (
     <Button
+      ref={launcherRef}
       onClick={onToggle}
-      aria-label={open ? "Close chat" : "Open chat"}
+      aria-label="Open chat"
+      aria-hidden={open}
+      tabIndex={open ? -1 : 0}
       size="icon"
-      className="fixed right-6 bottom-24 md:bottom-6 z-50 h-14 w-14 rounded-full shadow-2xl transition-all duration-500 ease-in-out hover:scale-105"
+      className={cn(
+        "fixed right-6 bottom-24 md:bottom-6 z-50 h-14 w-14 rounded-full shadow-2xl transition-all duration-500 ease-in-out hover:scale-105",
+        open && "opacity-0 pointer-events-none",
+      )}
     >
       <MessageSquare className="w-6 h-6" />
     </Button>
@@ -137,11 +144,14 @@ export function ChatPanel({
 
   return (
     <>
-      {!open && fab}
+      {fab}
       <Sheet
         open={open}
         onOpenChange={(isOpen) => {
-          if (!isOpen) onToggle();
+          if (!isOpen) {
+            onToggle();
+            setTimeout(() => launcherRef.current?.focus(), 0);
+          }
         }}
       >
         <SheetContent
