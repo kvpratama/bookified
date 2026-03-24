@@ -189,3 +189,10 @@
     cursor: pointer;
   }
 }
+
+/* Dark-mode PDF page filter – warms inverted colors to match the mocha/espresso palette */
+.dark .pdf-dark-theme {
+  background-color: oklch(var(--roasted-bean));
+  filter: invert(1) hue-rotate(180deg) sepia(0.35) saturate(0.8)
+    brightness(0.82) contrast(0.92);
+}

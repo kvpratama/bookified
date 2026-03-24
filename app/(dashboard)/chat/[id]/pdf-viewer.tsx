@@ -14,15 +14,22 @@ import { getBlobUrl } from "@/lib/utils";
 import { useDebouncedCallback } from "@/lib/hooks/use-debounce-callback";
 import { useKeyboardNavigation } from "@/lib/hooks/use-keyboard-navigation";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { ChevronUp, ChevronDown, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
+import {
+  ChevronUp,
+  ChevronDown,
+  ZoomIn,
+  ZoomOut,
+  Loader2,
+  FileText,
+} from "lucide-react";
 import { toast } from "sonner";
-// ... (imports)
+import { useDocumentViewer } from "./document-viewer-context";
 import { updateDocumentProgress } from "./actions";
 import type { ChatDocument, OutlineItem } from "./types";
 
-const ZOOM_STEP = 0.15;
+const ZOOM_STEP = 0.1;
 const MIN_SCALE = 0.5;
-const MAX_SCALE = 3.0;
+const MAX_SCALE = 2.0;
 const MAX_PAGE_WIDTH = 900;
 const PAGE_GAP = 16;
 const VIRTUALIZATION_BUFFER = 3; // render this many pages above/below viewport
@@ -32,22 +39,8 @@ function clampPage(page: number, totalPages?: number): number {
   return totalPages && totalPages > 0 ? Math.min(clamped, totalPages) : clamped;
 }
 
-export function PdfViewer({
-  document: doc,
-  externalPage,
-  onOutlineExtracted,
-  onDocumentLoad,
-  onPageChange,
-}: {
-  document: ChatDocument;
-  externalPage?: number;
-  onOutlineExtracted?: (
-    outline: OutlineItem[] | null,
-    isLoading: boolean,
-  ) => void;
-  onDocumentLoad?: (pdfDocument: PDFDocumentProxy) => void;
-  onPageChange?: (page: number) => void;
-}) {
+export function PdfViewer({ document: doc }: { document: ChatDocument }) {
+  const { state: viewerState, actions: viewerActions } = useDocumentViewer();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -66,14 +59,20 @@ export function PdfViewer({
   };
 
   const [currentPage, setCurrentPage] = useState(getInitialPage());
-  const [scale, setScale] = useState(1.0);
+  const [committedScale, setCommittedScale] = useState(1.0);
+  const scaleRef = useRef(1.0);
+  const isZooming = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingPage, setIsEditingPage] = useState(false);
   const [pageInputValue, setPageInputValue] = useState("");
   const [containerWidth, setContainerWidth] = useState<number | undefined>();
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set());
+  const [navTarget, setNavTarget] = useState<number | null>(null);
+  const lastHandledSeq = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const zoomWrapperRef = useRef<HTMLDivElement>(null);
+  const zoomInnerRef = useRef<HTMLDivElement>(null);
   const pageRefsMap = useRef<Map<number, HTMLDivElement>>(new Map());
   const pageHeightsMap = useRef<Map<number, number>>(new Map());
   const pageRatioMap = useRef<Map<number, number>>(new Map());
@@ -109,20 +108,19 @@ export function PdfViewer({
       setCurrentPage((p) => clampPage(p, pdf.numPages));
       setIsLoading(false);
 
-      if (onDocumentLoad) {
-        onDocumentLoad(pdf);
-      }
+      viewerActions.setPdfDocument(pdf);
 
-      if (onOutlineExtracted) {
-        try {
-          const outline = await pdf.getOutline();
-          onOutlineExtracted(outline as OutlineItem[] | null, false);
-        } catch {
-          onOutlineExtracted(null, false);
-        }
+      try {
+        const outline = await pdf.getOutline();
+        viewerActions.handleOutlineExtracted(
+          outline as OutlineItem[] | null,
+          false,
+        );
+      } catch {
+        viewerActions.handleOutlineExtracted(null, false);
       }
     },
-    [onOutlineExtracted, onDocumentLoad],
+    [viewerActions],
   );
 
   const onDocumentLoadError = useCallback(() => {
@@ -132,11 +130,7 @@ export function PdfViewer({
   const debouncedUpdateProgress = useDebouncedCallback<[number]>(
     async (page: number) => {
       try {
-        const { error } = await updateDocumentProgress(
-          doc.id,
-          page,
-          new Date().toISOString(),
-        );
+        const { error } = await updateDocumentProgress(doc.id, page);
         if (error) {
           toast.error("Failed to save reading progress");
         }
@@ -167,16 +161,35 @@ export function PdfViewer({
       if (el && scrollViewportRef.current) {
         isScrollingToPage.current = true;
         pageRatioMap.current.clear();
+        const distance = Math.abs(newPage - currentPage);
+        const isShortJump = distance <= VIRTUALIZATION_BUFFER;
         setCurrentPage(newPage);
         debouncedUpdateProgress(newPage);
         updateUrl(newPage);
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-        setTimeout(() => {
-          isScrollingToPage.current = false;
-        }, 800);
+
+        if (isShortJump) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(() => {
+            isScrollingToPage.current = false;
+          }, 800);
+        } else {
+          // Long jump: use instant scroll to avoid fighting with layout shifts
+          // from virtualization. Re-scroll after layout settles to correct for
+          // placeholder height mismatches.
+          el.scrollIntoView({ behavior: "instant", block: "start" });
+          requestAnimationFrame(() => {
+            const refreshed = pageRefsMap.current.get(newPage);
+            if (refreshed) {
+              refreshed.scrollIntoView({ behavior: "instant", block: "start" });
+            }
+            setTimeout(() => {
+              isScrollingToPage.current = false;
+            }, 200);
+          });
+        }
       }
     },
-    [numPages, debouncedUpdateProgress, updateUrl],
+    [numPages, currentPage, debouncedUpdateProgress, updateUrl],
   );
 
   const onDocumentItemClick = useCallback(
@@ -194,6 +207,7 @@ export function PdfViewer({
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (isZooming.current) return;
         let changed = false;
         for (const entry of entries) {
           const pageNum = Number(
@@ -235,7 +249,7 @@ export function PdfViewer({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (isScrollingToPage.current) return;
+        if (isScrollingToPage.current || isZooming.current) return;
 
         for (const entry of entries) {
           const pageNum = Number(
@@ -272,12 +286,10 @@ export function PdfViewer({
     return () => observer.disconnect();
   }, [numPages, debouncedUpdateProgress, debouncedUpdateUrl]);
 
-  // Notify parent of page changes
+  // Notify context of page changes
   useEffect(() => {
-    if (onPageChange) {
-      onPageChange(currentPage);
-    }
-  }, [currentPage, onPageChange]);
+    viewerActions.setCurrentPage(currentPage);
+  }, [currentPage, viewerActions]);
 
   // Scroll to initial page after document loads
   useEffect(() => {
@@ -300,22 +312,81 @@ export function PdfViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numPages]);
 
-  // Handle external page navigation
+  // Handle external page navigation (from outline panel)
+  // Step 1: When a new nav request arrives, set navTarget to force-render the page
   useEffect(() => {
-    if (externalPage && externalPage !== currentPage && numPages > 0) {
-      Promise.resolve().then(() => {
-        scrollToPage(externalPage);
-      });
-    }
-  }, [externalPage, numPages, currentPage, scrollToPage]);
+    const req = viewerState.selectedPage;
+    if (!req || req.seq <= lastHandledSeq.current || numPages === 0) return;
+    lastHandledSeq.current = req.seq;
+    const target = clampPage(req.page, numPages);
+    setNavTarget(target);
+  }, [viewerState.selectedPage, numPages]);
+
+  // Step 2: Once the target page is rendered in the DOM, scroll to it
+  useEffect(() => {
+    if (navTarget === null) return;
+    requestAnimationFrame(() => {
+      const el = pageRefsMap.current.get(navTarget);
+      if (el) {
+        scrollToPage(navTarget);
+      }
+      setNavTarget(null);
+    });
+  }, [navTarget, scrollToPage]);
+
+  const debouncedCommitZoom = useDebouncedCallback<[number]>(
+    (newScale: number) => {
+      isZooming.current = false;
+      setCommittedScale(newScale);
+    },
+    300,
+  );
+
+  const applyZoom = useCallback(
+    (newScale: number) => {
+      const oldScale = scaleRef.current;
+      if (newScale === oldScale) return;
+
+      isZooming.current = true;
+      scaleRef.current = newScale;
+
+      const viewport = scrollViewportRef.current;
+      const wrapper = zoomWrapperRef.current;
+      const inner = zoomInnerRef.current;
+      const renderW = containerWidth
+        ? Math.min(containerWidth, MAX_PAGE_WIDTH) * MAX_SCALE
+        : undefined;
+
+      if (wrapper && inner && renderW) {
+        wrapper.style.width = `${renderW * (newScale / MAX_SCALE)}px`;
+        inner.style.transform = `scale(${newScale / MAX_SCALE})`;
+      }
+
+      if (viewport) {
+        const scrollRatio = oldScale > 0 ? newScale / oldScale : 1;
+        viewport.scrollTop = viewport.scrollTop * scrollRatio;
+      }
+
+      debouncedCommitZoom(newScale);
+    },
+    [containerWidth, debouncedCommitZoom],
+  );
 
   const zoomIn = useCallback(() => {
-    setScale((s) => Math.min(s + ZOOM_STEP, MAX_SCALE));
-  }, []);
+    const next = Math.min(
+      Math.round((scaleRef.current + ZOOM_STEP) * 100) / 100,
+      MAX_SCALE,
+    );
+    applyZoom(next);
+  }, [applyZoom]);
 
   const zoomOut = useCallback(() => {
-    setScale((s) => Math.max(s - ZOOM_STEP, MIN_SCALE));
-  }, []);
+    const next = Math.max(
+      Math.round((scaleRef.current - ZOOM_STEP) * 100) / 100,
+      MIN_SCALE,
+    );
+    applyZoom(next);
+  }, [applyZoom]);
 
   const handlePageClick = useCallback(() => {
     setIsEditingPage(true);
@@ -386,17 +457,32 @@ export function PdfViewer({
     }
   }
 
+  // Force-render pages around the navigation target so the DOM element exists
+  if (navTarget !== null) {
+    for (
+      let i = navTarget - VIRTUALIZATION_BUFFER;
+      i <= navTarget + VIRTUALIZATION_BUFFER;
+      i++
+    ) {
+      if (i >= 1 && i <= numPages) renderedPageSet.add(i);
+    }
+  }
+
   useKeyboardNavigation({
     onLeft: () => scrollToPage(currentPage - 1),
     onRight: () => scrollToPage(currentPage + 1),
   });
 
-  const pageWidth = containerWidth
-    ? Math.min(containerWidth, MAX_PAGE_WIDTH) * scale
+  // Render at max scale to avoid pixelation when zooming in
+  // CSS transform scales down for lower zoom levels
+  const renderWidth = containerWidth
+    ? Math.min(containerWidth, MAX_PAGE_WIDTH) * MAX_SCALE
     : undefined;
 
   // Fallback estimated height for placeholder pages (letter-size aspect ratio)
-  const estimatedPageHeight = pageWidth ? pageWidth * 1.294 : 800;
+  const estimatedPageHeight = renderWidth
+    ? (renderWidth / MAX_SCALE) * 1.294
+    : 800;
 
   const fileUrl = getBlobUrl(doc.blob_url);
 
@@ -428,82 +514,114 @@ export function PdfViewer({
             </div>
           )}
 
-          <Document
-            file={fileUrl}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            onItemClick={onDocumentItemClick}
-            loading={null}
-            className="flex flex-col items-center [&_.react-pdf__Page]:w-full! [&_.react-pdf__Page_canvas]:w-full! [&_.react-pdf__Page_canvas]:h-auto!"
-            error={
-              <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
-                <p className="text-sm text-destructive font-medium">
-                  Failed to load PDF
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  The document could not be rendered. Please try again later.
-                </p>
-              </div>
-            }
+          {/* Wrapper clips overflow and sets visual width for proper centering */}
+          <div
+            ref={zoomWrapperRef}
+            style={{
+              width: renderWidth
+                ? `${renderWidth * (committedScale / MAX_SCALE)}px`
+                : "auto",
+              overflow: "hidden",
+            }}
           >
-            {numPages > 0 &&
-              Array.from({ length: numPages }, (_, i) => i + 1).map(
-                (pageNumber) => {
-                  const shouldRender = renderedPageSet.has(pageNumber);
-                  const placeholderHeight =
-                    pageHeightsMap.current.get(pageNumber) ??
-                    estimatedPageHeight;
-                  return (
-                    <div
-                      key={pageNumber}
-                      ref={(el) => setPageRef(pageNumber, el)}
-                      data-page-number={pageNumber}
-                      className={cn(
-                        "rounded-sm overflow-hidden",
-                        shouldRender && "shadow-2xl bg-white",
-                        shouldRender &&
-                          theme === "dark" &&
-                          "invert hue-rotate-180",
-                      )}
-                      style={{
-                        width: containerWidth ? "100%" : "auto",
-                        maxWidth: pageWidth ? `${pageWidth}px` : "none",
-                        height: shouldRender
-                          ? "auto"
-                          : `${placeholderHeight}px`,
-                        marginBottom:
-                          pageNumber < numPages ? `${PAGE_GAP}px` : 0,
-                      }}
-                    >
-                      {shouldRender && (
-                        <Page
-                          pageNumber={pageNumber}
-                          width={pageWidth}
-                          className="overflow-hidden"
-                          onRenderSuccess={() => {
-                            const el = pageRefsMap.current.get(pageNumber);
-                            if (el) {
-                              pageHeightsMap.current.set(
-                                pageNumber,
-                                el.offsetHeight,
-                              );
-                            }
-                          }}
-                          loading={
-                            <div
-                              className="flex items-center justify-center"
-                              style={{ height: `${placeholderHeight}px` }}
-                            >
-                              <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
-                            </div>
-                          }
-                        />
-                      )}
+            {/* Scale container via CSS transform for instant zoom without re-rendering */}
+            <div
+              ref={zoomInnerRef}
+              style={{
+                width: renderWidth ? `${renderWidth}px` : "auto",
+                transform: `scale(${committedScale / MAX_SCALE})`,
+                transformOrigin: "top left",
+              }}
+            >
+              <Document
+                file={fileUrl}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
+                onItemClick={onDocumentItemClick}
+                loading={null}
+                className="flex flex-col items-center [&_.react-pdf__Page]:w-full! [&_.react-pdf__Page_canvas]:w-full! [&_.react-pdf__Page_canvas]:h-auto!"
+                error={
+                  <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
+                    <div className="w-14 h-14 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mb-5">
+                      <FileText className="w-6 h-6 text-destructive" />
                     </div>
-                  );
-                },
-              )}
-          </Document>
+                    <h3 className="text-lg font-serif text-foreground mb-2 tracking-tight">
+                      Unable to Load Document
+                    </h3>
+                    <p className="text-[13px] text-muted-foreground max-w-[260px] leading-relaxed mb-5">
+                      The document could not be rendered. It may be corrupted or
+                      temporarily unavailable.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.location.reload()}
+                    >
+                      Try again
+                    </Button>
+                  </div>
+                }
+              >
+                {numPages > 0 &&
+                  Array.from({ length: numPages }, (_, i) => i + 1).map(
+                    (pageNumber) => {
+                      const shouldRender = renderedPageSet.has(pageNumber);
+                      const placeholderHeight =
+                        pageHeightsMap.current.get(pageNumber) ??
+                        estimatedPageHeight;
+                      return (
+                        <div
+                          key={pageNumber}
+                          ref={(el) => setPageRef(pageNumber, el)}
+                          data-page-number={pageNumber}
+                          className={cn(
+                            "rounded-xl overflow-hidden",
+                            // shouldRender && "shadow-2xl",
+                            shouldRender && theme !== "dark" && "bg-white",
+                            shouldRender &&
+                              theme === "dark" &&
+                              "pdf-dark-theme",
+                          )}
+                          style={{
+                            width: "100%",
+                            height: shouldRender
+                              ? "auto"
+                              : `${placeholderHeight}px`,
+                            marginBottom:
+                              pageNumber < numPages ? `${PAGE_GAP}px` : 0,
+                          }}
+                        >
+                          {shouldRender && (
+                            <Page
+                              pageNumber={pageNumber}
+                              width={renderWidth}
+                              className="overflow-hidden"
+                              onRenderSuccess={() => {
+                                const el = pageRefsMap.current.get(pageNumber);
+                                if (el) {
+                                  pageHeightsMap.current.set(
+                                    pageNumber,
+                                    el.offsetHeight,
+                                  );
+                                }
+                              }}
+                              loading={
+                                <div
+                                  className="flex items-center justify-center"
+                                  style={{ height: `${placeholderHeight}px` }}
+                                >
+                                  <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                                </div>
+                              }
+                            />
+                          )}
+                        </div>
+                      );
+                    },
+                  )}
+              </Document>
+            </div>
+          </div>
         </div>
       </ScrollArea>
 
@@ -563,20 +681,20 @@ export function PdfViewer({
               size="icon"
               className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               onClick={zoomOut}
-              disabled={scale <= MIN_SCALE}
+              disabled={committedScale <= MIN_SCALE}
             >
               <ZoomOut className="w-4 h-4" />
               <span className="sr-only">Zoom out</span>
             </Button>
             <span className="text-xs font-semibold tabular-nums min-w-[50px] text-center select-none text-foreground/80 tracking-wide">
-              {Math.round(scale * 100)}%
+              {Math.round(committedScale * 100)}%
             </span>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               onClick={zoomIn}
-              disabled={scale >= MAX_SCALE}
+              disabled={committedScale >= MAX_SCALE}
             >
               <ZoomIn className="w-4 h-4" />
               <span className="sr-only">Zoom in</span>

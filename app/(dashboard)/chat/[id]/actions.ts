@@ -11,7 +11,6 @@ type UpdateResult = {
 export async function updateDocumentProgress(
   documentId: string,
   currentPage: number,
-  lastAccessed: string,
 ): Promise<UpdateResult> {
   try {
     const supabase = await createClient();
@@ -28,9 +27,10 @@ export async function updateDocumentProgress(
       .from("documents")
       .update({
         current_page: currentPage,
-        last_accessed: lastAccessed,
+        last_accessed: new Date().toISOString(),
       } as TablesUpdate<"documents">)
-      .eq("id", documentId);
+      .eq("id", documentId)
+      .eq("user_id", user.id);
 
     if (error) {
       console.error("Failed to update document progress:", error);

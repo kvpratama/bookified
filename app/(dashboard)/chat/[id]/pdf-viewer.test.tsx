@@ -28,6 +28,34 @@ vi.mock("@/lib/hooks/use-keyboard-navigation", () => ({
   useKeyboardNavigation: () => {},
 }));
 
+const mockActions = {
+  setPdfDocument: vi.fn(),
+  setCurrentPage: vi.fn(),
+  handleOutlineExtracted: vi.fn(),
+  handlePageSelect: vi.fn(),
+  toggleOutline: vi.fn(),
+  closeOutline: vi.fn(),
+  toggleChat: vi.fn(),
+};
+
+const mockState = {
+  pdfDocument: null as null,
+  currentPage: 1,
+  outline: null as null,
+  isOutlineLoading: false,
+  hasOutline: false,
+  outlineVisible: false,
+  chatCollapsed: true,
+  selectedPage: undefined as number | undefined,
+};
+
+vi.mock("./document-viewer-context", () => ({
+  useDocumentViewer: () => ({
+    state: mockState,
+    actions: mockActions,
+  }),
+}));
+
 vi.mock("react-pdf", () => ({
   Document: ({
     children,
@@ -61,6 +89,15 @@ const mockDocument: ChatDocument = {
 describe("PdfViewer", () => {
   beforeEach(() => {
     mockUpdateDocumentProgress.mockClear();
+    Object.values(mockActions).forEach((fn) => fn.mockClear());
+    mockState.pdfDocument = null;
+    mockState.currentPage = 1;
+    mockState.outline = null;
+    mockState.isOutlineLoading = false;
+    mockState.hasOutline = false;
+    mockState.outlineVisible = false;
+    mockState.chatCollapsed = true;
+    mockState.selectedPage = undefined;
     vi.mocked(useSearchParams).mockReturnValue(
       new URLSearchParams() as ReturnType<typeof useSearchParams>,
     );
@@ -285,34 +322,179 @@ describe("PdfViewer", () => {
   });
 
   describe("Outline Extraction", () => {
-    it("calls onOutlineExtracted with outline data when PDF loads", async () => {
-      const mockOnOutlineExtracted = vi.fn();
-
-      render(
-        <PdfViewer
-          document={mockDocument}
-          onOutlineExtracted={mockOnOutlineExtracted}
-        />,
-      );
+    it("calls handleOutlineExtracted with outline data when PDF loads", async () => {
+      render(<PdfViewer document={mockDocument} />);
 
       await waitFor(() => {
-        expect(mockOnOutlineExtracted).toHaveBeenCalled();
+        expect(mockActions.handleOutlineExtracted).toHaveBeenCalled();
       });
     });
 
-    it("calls onOutlineExtracted with null when PDF has no outline", async () => {
-      const mockOnOutlineExtracted = vi.fn();
-
-      render(
-        <PdfViewer
-          document={mockDocument}
-          onOutlineExtracted={mockOnOutlineExtracted}
-        />,
-      );
+    it("calls handleOutlineExtracted with null when PDF has no outline", async () => {
+      render(<PdfViewer document={mockDocument} />);
 
       await waitFor(() => {
-        expect(mockOnOutlineExtracted).toHaveBeenCalledWith(null, false);
+        expect(mockActions.handleOutlineExtracted).toHaveBeenCalledWith(
+          null,
+          false,
+        );
       });
+    });
+  });
+
+  describe("Zoom Controls", () => {
+    it("renders zoom in and zoom out buttons with accessible names", async () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByRole("button", { name: /zoom in/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /zoom out/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("displays initial zoom level as 100%", async () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByText("100%")).toBeInTheDocument();
+    });
+
+    it("zoom in button increases the displayed zoom percentage", async () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+      });
+
+      const zoomInButton = screen.getByRole("button", { name: /zoom in/i });
+      fireEvent.click(zoomInButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("110%")).toBeInTheDocument();
+      });
+    });
+
+    it("zoom out button decreases the displayed zoom percentage", async () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+      });
+
+      const zoomOutButton = screen.getByRole("button", { name: /zoom out/i });
+      fireEvent.click(zoomOutButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("90%")).toBeInTheDocument();
+      });
+    });
+
+    it("zoom in button is disabled at max scale (200%)", async () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+      });
+
+      const zoomInButton = screen.getByRole("button", { name: /zoom in/i });
+
+      for (let i = 0; i < 10; i++) {
+        fireEvent.click(zoomInButton);
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText("200%")).toBeInTheDocument();
+      });
+      expect(zoomInButton).toBeDisabled();
+    });
+
+    it("zoom out button is disabled at min scale (50%)", async () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+      });
+
+      const zoomOutButton = screen.getByRole("button", { name: /zoom out/i });
+
+      for (let i = 0; i < 5; i++) {
+        fireEvent.click(zoomOutButton);
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText("50%")).toBeInTheDocument();
+      });
+      expect(zoomOutButton).toBeDisabled();
+    });
+  });
+
+  describe("Callbacks", () => {
+    it("calls setPdfDocument when PDF loads", async () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      await waitFor(() => {
+        expect(mockActions.setPdfDocument).toHaveBeenCalledWith(
+          expect.objectContaining({ numPages: 50 }),
+        );
+      });
+    });
+
+    it("calls setCurrentPage when current page changes", async () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+      });
+
+      mockActions.setCurrentPage.mockClear();
+
+      const nextButton = screen.getByRole("button", { name: /next page/i });
+      fireEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(mockActions.setCurrentPage).toHaveBeenCalledWith(6);
+      });
+    });
+  });
+
+  describe("Loading / Error states", () => {
+    it("shows loading indicator initially", () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      expect(screen.getByText(/Loading Document/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Page input edge case", () => {
+    it("does not jump when non-numeric value is entered in page input", async () => {
+      render(<PdfViewer document={mockDocument} />);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Loading Document/i)).not.toBeInTheDocument();
+      });
+
+      const pageCounter = screen.getByText(/5\s*\/\s*50/);
+      fireEvent.click(pageCounter);
+
+      const input = screen.getByRole("spinbutton");
+
+      fireEvent.change(input, { target: { value: "abc" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+
+      await waitFor(() => {
+        expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/5\s*\/\s*50/)).toBeInTheDocument();
     });
   });
 });
