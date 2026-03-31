@@ -8,6 +8,51 @@ type UpdateResult = {
   error: string | null;
 };
 
+type TriggerIngestionResult = {
+  data: { triggered: boolean } | null;
+  error: string | null;
+};
+
+export async function triggerIngestion(
+  documentId: string,
+): Promise<TriggerIngestionResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      return { data: null, error: "Unauthorized" };
+    }
+
+    const endpoint = process.env.BOOKIFIED_API_ENDPOINT;
+    if (!endpoint) {
+      return { data: null, error: "Ingestion endpoint not configured" };
+    }
+
+    const res = await fetch(`${endpoint}/ingest/${documentId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    if (!res.ok) {
+      return {
+        data: null,
+        error: `Ingestion failed with status ${res.status}`,
+      };
+    }
+
+    return { data: { triggered: true }, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("Failed to trigger ingestion:", message);
+    return { data: null, error: message };
+  }
+}
+
 export async function updateDocumentProgress(
   documentId: string,
   currentPage: number,

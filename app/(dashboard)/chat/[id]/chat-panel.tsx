@@ -15,6 +15,9 @@ import { useAppStore } from "@/lib/store";
 import type { ChatMessage } from "@/lib/store";
 import type { ChatDocument } from "./types";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { triggerIngestion } from "./actions";
+import { AlertCircle } from "lucide-react";
 
 const formatTime = (isoString: string) => {
   const date = new Date(isoString);
@@ -36,9 +39,38 @@ export function ChatPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const replyTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const ingestionTriggeredRef = useRef(false);
 
   const { chats, addMessage } = useAppStore();
   const currentChat = useMemo(() => chats[doc.id] || [], [chats, doc.id]);
+  const [isIngested, setIsIngested] = useState(!!doc.ingested_at);
+
+  // Trigger ingestion and check status when the panel opens
+  useEffect(() => {
+    if (!open || isIngested) return;
+
+    // Trigger ingestion once per component lifetime
+    if (!ingestionTriggeredRef.current) {
+      ingestionTriggeredRef.current = true;
+      triggerIngestion(doc.id);
+    }
+
+    // Check current ingestion status
+    const checkStatus = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("documents")
+        .select("ingested_at")
+        .eq("id", doc.id)
+        .single();
+
+      if (!error && data?.ingested_at) {
+        setIsIngested(true);
+      }
+    };
+
+    checkStatus();
+  }, [open, isIngested, doc.id]);
 
   // Scroll to bottom on new message or when opening the panel
   useEffect(() => {
@@ -180,6 +212,22 @@ export function ChatPanel({
                 </Button>
               </SheetClose>
             </div>
+
+            {/* Ingestion warning */}
+            {!isIngested && (
+              <div className="px-4 py-3 bg-accent border-b border-border/40 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                <AlertCircle className="w-4 h-4 text-accent-foreground mt-0.5 shrink-0" />
+                <div className="flex flex-col gap-1">
+                  <p className="text-[12px] font-medium text-foreground leading-none">
+                    Analyzing Document
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
+                    Chat is available but answers may be inaccurate while the
+                    ingestion process is running.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Messages */}
             <ScrollArea

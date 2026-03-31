@@ -171,6 +171,7 @@ const mockDocument: ChatDocument = {
   size: 2500000,
   blob_url: "https://example.com/test.pdf",
   current_page: 3,
+  ingested_at: "2026-03-31T00:00:00Z",
 };
 
 const mockDocumentNulls: ChatDocument = {
@@ -181,6 +182,7 @@ const mockDocumentNulls: ChatDocument = {
   size: 1024,
   blob_url: "https://example.com/another.pdf",
   current_page: 1,
+  ingested_at: null,
 };
 
 function resetMockState() {

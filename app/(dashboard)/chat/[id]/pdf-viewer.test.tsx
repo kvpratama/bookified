@@ -84,6 +84,7 @@ const mockDocument: ChatDocument = {
   size: 1000000,
   blob_url: "blob:test-url",
   current_page: 5,
+  ingested_at: "2026-03-31T00:00:00Z",
 };
 
 describe("PdfViewer", () => {

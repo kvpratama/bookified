@@ -24,7 +24,29 @@ const mockDocument: ChatDocument = {
   size: 2500000,
   blob_url: "https://example.com/test.pdf",
   current_page: 3,
+  ingested_at: "2026-03-31T00:00:00Z",
 };
+
+// Mock Supabase client
+vi.mock("@/lib/supabase/client", () => ({
+  createClient: () => ({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({ data: { ingested_at: null }, error: null }),
+        }),
+      }),
+    }),
+  }),
+}));
+
+// Mock server action
+vi.mock("./actions", () => ({
+  triggerIngestion: vi.fn(async () => ({
+    data: { triggered: true },
+    error: null,
+  })),
+}));
 
 describe("ChatPanel", () => {
   let mockOnToggle: () => void;

@@ -34,45 +34,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      document_embeddings: {
+        Row: {
+          chunk_key: string
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string
+          id: string
+          metadata: Json
+          user_id: string
+        }
+        Insert: {
+          chunk_key: string
+          content: string
+          created_at?: string
+          document_id: string
+          embedding: string
+          id?: string
+          metadata?: Json
+          user_id: string
+        }
+        Update: {
+          chunk_key?: string
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string
+          id?: string
+          metadata?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embeddings_document_owner_fkey"
+            columns: ["document_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           author: string | null
           blob_url: string
           current_page: number
           id: string
+          ingested_at: string | null
           last_accessed: string | null
           name: string
           page_count: number | null
           size: number
           thumbnail_url: string | null
           upload_date: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           author?: string | null
           blob_url: string
           current_page?: number
           id?: string
+          ingested_at?: string | null
           last_accessed?: string | null
           name: string
           page_count?: number | null
           size: number
           thumbnail_url?: string | null
           upload_date?: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           author?: string | null
           blob_url?: string
           current_page?: number
           id?: string
+          ingested_at?: string | null
           last_accessed?: string | null
           name?: string
           page_count?: number | null
           size?: number
           thumbnail_url?: string | null
           upload_date?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -81,7 +125,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_document_embeddings: {
+        Args: { filter?: Json; match_count?: number; query_embedding: string }
+        Returns: {
+          content: string
+          id: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

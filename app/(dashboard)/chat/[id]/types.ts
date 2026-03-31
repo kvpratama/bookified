@@ -4,7 +4,9 @@ import type { Tables } from "@/lib/supabase/database.types";
 export type ChatDocument = Pick<
   Tables<"documents">,
   "id" | "name" | "author" | "page_count" | "size" | "blob_url" | "current_page"
->;
+> & {
+  ingested_at: string | null;
+};
 
 /** PDF outline item structure from react-pdf */
 export type OutlineItem = {
