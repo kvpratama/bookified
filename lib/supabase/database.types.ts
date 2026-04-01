@@ -82,6 +82,7 @@ export type Database = {
           current_page: number
           id: string
           ingested_at: string | null
+          is_ingesting: boolean
           last_accessed: string | null
           name: string
           page_count: number | null
@@ -96,6 +97,7 @@ export type Database = {
           current_page?: number
           id?: string
           ingested_at?: string | null
+          is_ingesting?: boolean
           last_accessed?: string | null
           name: string
           page_count?: number | null
@@ -110,6 +112,7 @@ export type Database = {
           current_page?: number
           id?: string
           ingested_at?: string | null
+          is_ingesting?: boolean
           last_accessed?: string | null
           name?: string
           page_count?: number | null
