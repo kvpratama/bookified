@@ -11,6 +11,11 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
 import { useAppStore, type ChatMessage, type Citation } from "@/lib/store";
 import type { ChatDocument } from "./types";
 import { cn } from "@/lib/utils";
@@ -26,6 +31,24 @@ const formatTime = (isoString: string) => {
 function generateId() {
   return Math.random().toString(36).substring(7);
 }
+
+// Format citations as markdown to append to AI response content
+const formatCitationsAsMarkdown = (citations: Citation[]): string => {
+  if (!citations || citations.length === 0) return "";
+
+  const citationsMarkdown =
+    "\n\n---\n\n**Sources:**\n\n" +
+    citations
+      .map((citation, i) => {
+        const num = i + 1;
+        const text = citation.text ? `"${citation.text}"` : "";
+        const page = citation.page ? ` (Page ${citation.page})` : "";
+        return `${num}. ${text}${page}`;
+      })
+      .join("\n");
+
+  return citationsMarkdown;
+};
 
 export function ChatPanel({
   document: doc,
@@ -296,100 +319,64 @@ export function ChatPanel({
                             {msg.content}
                           </p>
                         </div>
+                      ) : msg.role === "user" ? (
+                        /* User Message */
+                        <Message from="user" className="max-w-[92%]">
+                          <MessageContent className="rounded-2xl rounded-tr-sm shadow-sm">
+                            {msg.content}
+                          </MessageContent>
+                          <span className="text-[10px] text-muted-foreground/60 font-medium select-none tracking-wide mt-1 self-end mr-1">
+                            {formatTime(msg.timestamp)}
+                          </span>
+                        </Message>
                       ) : (
-                        /* User/AI Message */
-                        <div
-                          className={cn(
-                            "flex gap-4 max-w-[92%] animate-in fade-in slide-in-from-bottom-2 duration-500",
-                            msg.role === "user"
-                              ? "self-end flex-row-reverse"
-                              : "self-start",
-                          )}
-                        >
-                          {msg.role !== "user" && (
-                            <div className="mt-1 shrink-0">
-                              <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
-                                <Sparkles className="w-3.5 h-3.5" />
+                        /* AI Message */
+                        <Message from="assistant" className="max-w-[92%]">
+                          <MessageContent className="p-0 gap-0 min-w-[280px]">
+                            <div className="flex items-start gap-3">
+                              <div className="mt-0.5 shrink-0">
+                                <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <MessageResponse className="font-serif text-[15.5px] leading-relaxed text-foreground">
+                                  {`${msg.content}${formatCitationsAsMarkdown(msg.citations || [])}`}
+                                </MessageResponse>
                               </div>
                             </div>
-                          )}
-
-                          <div
-                            className={cn(
-                              "flex flex-col gap-1.5 min-w-0",
-                              msg.role === "user" ? "items-end" : "items-start",
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "text-[14px]",
-                                msg.role === "user"
-                                  ? "bg-foreground text-background px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm font-sans font-medium"
-                                  : "text-foreground relative pl-5 py-1 border-l-[3px] border-primary/20 font-serif text-[15.5px] leading-relaxed",
-                              )}
-                            >
-                              {msg.content}
-                              {/* Citations */}
-                              {msg.citations && msg.citations.length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-primary/10">
-                                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                                    Sources
-                                  </p>
-                                  <ul className="space-y-1.5">
-                                    {msg.citations.map(
-                                      (citation: Citation, i: number) => (
-                                        <li
-                                          key={i}
-                                          className="text-[11px] text-muted-foreground leading-relaxed"
-                                        >
-                                          <span className="font-medium text-foreground mr-1.5">
-                                            [{i + 1}]
-                                          </span>
-                                          {citation.text && (
-                                            <span className="italic">
-                                              &quot;{citation.text}&quot;
-                                            </span>
-                                          )}
-                                          {citation.page && (
-                                            <span className="text-muted-foreground/60 ml-1">
-                                              (Page {citation.page})
-                                            </span>
-                                          )}
-                                        </li>
-                                      ),
-                                    )}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                            <span
-                              className={cn(
-                                "text-[10px] text-muted-foreground/60 font-medium select-none tracking-wide",
-                                msg.role !== "user" && "ml-5",
-                              )}
-                            >
-                              {formatTime(msg.timestamp)}
-                            </span>
-                          </div>
-                        </div>
+                          </MessageContent>
+                          <span className="text-[10px] text-muted-foreground/60 font-medium select-none tracking-wide mt-1 ml-12">
+                            {formatTime(msg.timestamp)}
+                          </span>
+                        </Message>
                       )}
                     </div>
                   ))
                 )}
 
                 {isStreaming && (
-                  <div className="flex gap-4 max-w-[92%] self-start animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div className="mt-1 shrink-0">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
-                        <Sparkles className="w-3.5 h-3.5" />
+                  <Message
+                    from="assistant"
+                    className="max-w-[92%] animate-in fade-in slide-in-from-bottom-2 duration-500"
+                  >
+                    <MessageContent className="p-0 gap-0 min-w-[280px]">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0 py-1">
+                          <div className="flex gap-1.5 items-center h-[20px]">
+                            <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                            <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                            <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="pl-5 py-2 border-l-[3px] border-primary/20 flex gap-1.5 items-center h-[36px]">
-                      <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                      <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                      <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
-                    </div>
-                  </div>
+                    </MessageContent>
+                  </Message>
                 )}
               </div>
             </ScrollArea>
