@@ -149,10 +149,20 @@ export function ChatPanel({
 
   // Scroll to bottom on new message or when opening the panel
   useEffect(() => {
-    if (open && scrollViewportRef.current) {
-      scrollViewportRef.current.scrollTop =
-        scrollViewportRef.current.scrollHeight;
-    }
+    if (!open) return;
+
+    const scrollToBottom = () => {
+      if (scrollViewportRef.current) {
+        scrollViewportRef.current.scrollTop =
+          scrollViewportRef.current.scrollHeight;
+      }
+    };
+
+    // Immediate scroll for new messages while panel is already open
+    scrollToBottom();
+    // Delayed scroll to handle Sheet open animation rendering
+    const timer = setTimeout(scrollToBottom, 150);
+    return () => clearTimeout(timer);
   }, [currentChat, isStreaming, open]);
 
   // Focus input when the panel opens

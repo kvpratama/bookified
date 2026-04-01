@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  act,
+} from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ChatPanel } from "./chat-panel";
 import type { ChatMessage } from "@/lib/store";
@@ -514,6 +520,90 @@ describe("ChatPanel", () => {
         />,
       );
       expect(screen.queryByText("Analyzing Document")).not.toBeInTheDocument();
+    });
+  });
+
+  // --- Scroll to bottom ---
+  describe("scroll-to-bottom on open", () => {
+    let scrollAssignments: number[];
+    let mockScrollHeight: number;
+
+    beforeEach(() => {
+      scrollAssignments = [];
+      mockScrollHeight = 500;
+    });
+
+    function patchScrollViewport() {
+      const viewport = document.querySelector(
+        '[data-slot="scroll-area-viewport"]',
+      );
+      if (viewport) {
+        Object.defineProperty(viewport, "scrollHeight", {
+          get: () => mockScrollHeight,
+          configurable: true,
+        });
+        let _scrollTop = 0;
+        Object.defineProperty(viewport, "scrollTop", {
+          get: () => _scrollTop,
+          set: (v: number) => {
+            _scrollTop = v;
+            scrollAssignments.push(v);
+          },
+          configurable: true,
+        });
+      }
+    }
+
+    it("scrolls to bottom when panel opens", () => {
+      vi.useFakeTimers();
+      const { rerender } = render(
+        <ChatPanel
+          document={mockDocument}
+          open={false}
+          onToggle={mockOnToggle}
+        />,
+      );
+
+      // Open the panel
+      rerender(
+        <ChatPanel
+          document={mockDocument}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+
+      patchScrollViewport();
+
+      // Advance past the delayed scroll (150ms)
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(scrollAssignments.length).toBeGreaterThanOrEqual(1);
+      expect(scrollAssignments[scrollAssignments.length - 1]).toBe(
+        mockScrollHeight,
+      );
+      vi.useRealTimers();
+    });
+
+    it("does not scroll when panel is closed", () => {
+      vi.useFakeTimers();
+      render(
+        <ChatPanel
+          document={mockDocument}
+          open={false}
+          onToggle={mockOnToggle}
+        />,
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      // No scroll viewport exists when sheet is closed, so no scroll assignments
+      expect(scrollAssignments).toHaveLength(0);
+      vi.useRealTimers();
     });
   });
 });
