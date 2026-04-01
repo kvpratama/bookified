@@ -172,6 +172,7 @@ const mockDocument: ChatDocument = {
   blob_url: "https://example.com/test.pdf",
   current_page: 3,
   ingested_at: "2026-03-31T00:00:00Z",
+  is_ingesting: false,
 };
 
 const mockDocumentNulls: ChatDocument = {
@@ -183,6 +184,7 @@ const mockDocumentNulls: ChatDocument = {
   blob_url: "https://example.com/another.pdf",
   current_page: 1,
   ingested_at: null,
+  is_ingesting: false,
 };
 
 function resetMockState() {

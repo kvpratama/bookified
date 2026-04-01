@@ -18,6 +18,24 @@ export async function triggerIngestion(
 ): Promise<TriggerIngestionResult> {
   try {
     const supabase = await createClient();
+
+    // Check if ingestion is already in progress or completed
+    const { data: doc, error: queryError } = await supabase
+      .from("documents")
+      .select("is_ingesting, ingested_at")
+      .eq("id", documentId)
+      .single();
+
+    if (queryError) {
+      console.log("DEBUG: queryError found:", queryError);
+      return { data: null, error: queryError.message };
+    }
+
+    if (doc.is_ingesting || doc.ingested_at) {
+      console.log("INFO: doc is already ingesting or ingested");
+      return { data: { triggered: false }, error: null };
+    }
+
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -31,6 +49,9 @@ export async function triggerIngestion(
       return { data: null, error: "Ingestion endpoint not configured" };
     }
 
+    if (process.env.NODE_ENV === "test") {
+      console.trace("DEBUG: calling fetch now");
+    }
     const res = await fetch(`${endpoint}/ingest/${documentId}`, {
       method: "POST",
       headers: {

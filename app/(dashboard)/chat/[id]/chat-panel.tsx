@@ -15,7 +15,6 @@ import { useAppStore } from "@/lib/store";
 import type { ChatMessage } from "@/lib/store";
 import type { ChatDocument } from "./types";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import { triggerIngestion } from "./actions";
 import { AlertCircle } from "lucide-react";
 
@@ -39,38 +38,17 @@ export function ChatPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const replyTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const ingestionTriggeredRef = useRef(false);
 
   const { chats, addMessage } = useAppStore();
   const currentChat = useMemo(() => chats[doc.id] || [], [chats, doc.id]);
-  const [isIngested, setIsIngested] = useState(!!doc.ingested_at);
+  const isIngested = !!doc.ingested_at;
 
-  // Trigger ingestion and check status when the panel opens
+  // Trigger ingestion when the panel opens and document is idle
   useEffect(() => {
-    if (!open || isIngested) return;
+    if (!open || isIngested || doc.is_ingesting) return;
 
-    // Trigger ingestion once per component lifetime
-    if (!ingestionTriggeredRef.current) {
-      ingestionTriggeredRef.current = true;
-      triggerIngestion(doc.id);
-    }
-
-    // Check current ingestion status
-    const checkStatus = async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("documents")
-        .select("ingested_at")
-        .eq("id", doc.id)
-        .single();
-
-      if (!error && data?.ingested_at) {
-        setIsIngested(true);
-      }
-    };
-
-    checkStatus();
-  }, [open, isIngested, doc.id]);
+    triggerIngestion(doc.id);
+  }, [open, isIngested, doc.is_ingesting, doc.id]);
 
   // Scroll to bottom on new message or when opening the panel
   useEffect(() => {

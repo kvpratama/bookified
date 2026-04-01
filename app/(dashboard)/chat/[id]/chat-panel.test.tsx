@@ -25,6 +25,7 @@ const mockDocument: ChatDocument = {
   blob_url: "https://example.com/test.pdf",
   current_page: 3,
   ingested_at: "2026-03-31T00:00:00Z",
+  is_ingesting: false,
 };
 
 // Mock Supabase client
@@ -392,6 +393,52 @@ describe("ChatPanel", () => {
       expect(sendButton).toBeDisabled();
     });
 
+    it("does not call triggerIngestion when document is already ingested", async () => {
+      const { triggerIngestion } = await import("./actions");
+
+      render(
+        <ChatPanel
+          document={{
+            ...mockDocument,
+            ingested_at: "2026-03-31T00:00:00Z",
+            is_ingesting: false,
+          }}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+
+      expect(triggerIngestion).not.toHaveBeenCalled();
+    });
+
+    it("does not call triggerIngestion when document is currently ingesting", async () => {
+      const { triggerIngestion } = await import("./actions");
+
+      render(
+        <ChatPanel
+          document={{ ...mockDocument, ingested_at: null, is_ingesting: true }}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+
+      expect(triggerIngestion).not.toHaveBeenCalled();
+    });
+
+    it("calls triggerIngestion when document is idle (not ingesting, not ingested)", async () => {
+      const { triggerIngestion } = await import("./actions");
+
+      render(
+        <ChatPanel
+          document={{ ...mockDocument, ingested_at: null, is_ingesting: false }}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+
+      expect(triggerIngestion).toHaveBeenCalledWith(mockDocument.id);
+    });
+
     it("after AI response timeout, addMessage is called again with an AI message", () => {
       vi.useFakeTimers();
 
@@ -423,6 +470,46 @@ describe("ChatPanel", () => {
       );
 
       vi.useRealTimers();
+    });
+  });
+
+  // --- Ingestion warning banner ---
+  describe("ingestion warning", () => {
+    it("shows warning when document is not ingested and not ingesting (idle)", () => {
+      render(
+        <ChatPanel
+          document={{ ...mockDocument, ingested_at: null, is_ingesting: false }}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+      expect(screen.getByText("Analyzing Document")).toBeInTheDocument();
+    });
+
+    it("shows warning when document is currently ingesting", () => {
+      render(
+        <ChatPanel
+          document={{ ...mockDocument, ingested_at: null, is_ingesting: true }}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+      expect(screen.getByText("Analyzing Document")).toBeInTheDocument();
+    });
+
+    it("does not show warning when document is already ingested", () => {
+      render(
+        <ChatPanel
+          document={{
+            ...mockDocument,
+            ingested_at: "2026-03-31T00:00:00Z",
+            is_ingesting: false,
+          }}
+          open={true}
+          onToggle={mockOnToggle}
+        />,
+      );
+      expect(screen.queryByText("Analyzing Document")).not.toBeInTheDocument();
     });
   });
 });
