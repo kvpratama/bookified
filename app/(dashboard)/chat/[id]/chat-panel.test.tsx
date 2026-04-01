@@ -42,7 +42,7 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 
 // Mock server action
-vi.mock("./actions", () => ({
+vi.mock("@/app/(dashboard)/actions", () => ({
   triggerIngestion: vi.fn(async () => ({
     data: { triggered: true },
     error: null,
@@ -394,7 +394,7 @@ describe("ChatPanel", () => {
     });
 
     it("does not call triggerIngestion when document is already ingested", async () => {
-      const { triggerIngestion } = await import("./actions");
+      const { triggerIngestion } = await import("@/app/(dashboard)/actions");
 
       render(
         <ChatPanel
@@ -412,7 +412,7 @@ describe("ChatPanel", () => {
     });
 
     it("does not call triggerIngestion when document is currently ingesting", async () => {
-      const { triggerIngestion } = await import("./actions");
+      const { triggerIngestion } = await import("@/app/(dashboard)/actions");
 
       render(
         <ChatPanel
@@ -426,7 +426,7 @@ describe("ChatPanel", () => {
     });
 
     it("calls triggerIngestion when document is idle (not ingesting, not ingested)", async () => {
-      const { triggerIngestion } = await import("./actions");
+      const { triggerIngestion } = await import("@/app/(dashboard)/actions");
 
       render(
         <ChatPanel

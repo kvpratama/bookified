@@ -15,7 +15,7 @@ import { useAppStore } from "@/lib/store";
 import type { ChatMessage } from "@/lib/store";
 import type { ChatDocument } from "./types";
 import { cn } from "@/lib/utils";
-import { triggerIngestion } from "./actions";
+import { triggerIngestion } from "@/app/(dashboard)/actions";
 import { AlertCircle } from "lucide-react";
 
 const formatTime = (isoString: string) => {
@@ -217,10 +217,10 @@ export function ChatPanel({
                   <div className="flex flex-col items-center justify-center py-20 text-center mx-auto max-w-[260px] animate-in fade-in duration-700 relative">
                     {/* Warm radial glow */}
                     <div className="absolute inset-0 -top-10 pointer-events-none">
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-accent-foreground/[0.04] blur-3xl" />
-                      <div className="absolute top-1/3 left-1/3 w-32 h-32 rounded-full bg-primary/[0.03] blur-2xl" />
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-accent-foreground/4 blur-3xl" />
+                      <div className="absolute top-1/3 left-1/3 w-32 h-32 rounded-full bg-primary/3 blur-2xl" />
                     </div>
-                    <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-accent-foreground/10 to-primary/5 border border-accent-foreground/10 flex items-center justify-center mb-6 shadow-sm">
+                    <div className="relative w-16 h-16 rounded-full bg-linear-to-br from-accent-foreground/10 to-primary/5 border border-accent-foreground/10 flex items-center justify-center mb-6 shadow-sm">
                       <Sparkles className="w-6 h-6 text-accent-foreground animate-breathe" />
                     </div>
                     <h3 className="relative text-xl font-serif text-foreground mb-3 tracking-tight">
