@@ -454,20 +454,24 @@ describe("ChatPanel", () => {
       fireEvent.change(input, { target: { value: "Test timeout" } });
       fireEvent.click(screen.getByRole("button", { name: /send message/i }));
 
-      expect(mockAddMessage).toHaveBeenCalledTimes(1);
-      expect(mockAddMessage).toHaveBeenCalledWith(
+      // With real streaming, addMessage is called twice: user message + AI placeholder
+      expect(mockAddMessage).toHaveBeenCalledTimes(2);
+      expect(mockAddMessage).toHaveBeenNthCalledWith(
+        1,
         mockDocument.id,
         expect.objectContaining({ role: "user", content: "Test timeout" }),
+      );
+      expect(mockAddMessage).toHaveBeenNthCalledWith(
+        2,
+        mockDocument.id,
+        expect.objectContaining({ role: "ai", content: "" }),
       );
 
       // Advance past the max possible timeout (1500 + 1000 = 2500ms)
       vi.advanceTimersByTime(3000);
 
+      // After timeout, no additional addMessage calls (streaming handles updates)
       expect(mockAddMessage).toHaveBeenCalledTimes(2);
-      expect(mockAddMessage).toHaveBeenLastCalledWith(
-        mockDocument.id,
-        expect.objectContaining({ role: "ai" }),
-      );
 
       vi.useRealTimers();
     });

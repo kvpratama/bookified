@@ -70,3 +70,179 @@ describe("updateDocumentProgress", () => {
     vi.useRealTimers();
   });
 });
+
+describe("streamChatMessage", () => {
+  const documentId = "doc-123";
+  const message = "What is the main argument?";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockContext.error = null;
+    mockContext.session = { access_token: "token-123" };
+    vi.stubEnv("BOOKIFIED_API_ENDPOINT", "https://api.example.com");
+  });
+
+  it("returns error when no session", async () => {
+    mockContext.session = null as unknown;
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBe("Unauthorized");
+    expect(result.data).toBeNull();
+  });
+
+  it("returns error when endpoint not configured", async () => {
+    vi.unstubAllEnvs();
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBe("Ingestion endpoint not configured");
+    expect(result.data).toBeNull();
+  });
+
+  it("returns error on network failure", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBe("Failed to connect to chat service");
+    expect(result.data).toBeNull();
+
+    global.fetch = originalFetch;
+  });
+
+  it("returns error on HTTP error status", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBe("Chat service unavailable (status 500)");
+    expect(result.data).toBeNull();
+
+    global.fetch = originalFetch;
+  });
+
+  it("yields token events correctly", async () => {
+    const mockSSE = `data: "Hello"\nevent: token\n\n`;
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(mockSSE),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          cancel: vi.fn(),
+        }),
+      },
+    });
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toBeDefined();
+
+    if (result.data) {
+      const events = [];
+      for await (const event of result.data) {
+        events.push(event);
+      }
+      expect(events).toContainEqual({ type: "token", content: "Hello" });
+    }
+
+    global.fetch = originalFetch;
+  });
+
+  it("yields citation events correctly", async () => {
+    const citations = [{ page: 1, text: "Example quote" }];
+    const mockSSE = `data: ${JSON.stringify(citations)}\nevent: citations\n\n`;
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(mockSSE),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          cancel: vi.fn(),
+        }),
+      },
+    });
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toBeDefined();
+
+    if (result.data) {
+      const events = [];
+      for await (const event of result.data) {
+        events.push(event);
+      }
+      expect(events).toContainEqual({
+        type: "citations",
+        citations: citations,
+      });
+    }
+
+    global.fetch = originalFetch;
+  });
+
+  it("yields error events correctly", async () => {
+    const mockSSE = `data: {"detail": "Something went wrong"}\nevent: error\n\n`;
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(mockSSE),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          cancel: vi.fn(),
+        }),
+      },
+    });
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toBeDefined();
+
+    if (result.data) {
+      const events = [];
+      for await (const event of result.data) {
+        events.push(event);
+      }
+      expect(events).toContainEqual({
+        type: "error",
+        message: "Something went wrong",
+      });
+    }
+
+    global.fetch = originalFetch;
+  });
+});
