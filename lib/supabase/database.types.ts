@@ -128,6 +128,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_sorted_documents: {
+        Args: {
+          limit_count?: number
+          offset_count?: number
+          search_query?: string
+        }
+        Returns: {
+          author: string
+          current_page: number
+          id: string
+          last_accessed: string
+          name: string
+          page_count: number
+          thumbnail_url: string
+          total_count: number
+          upload_date: string
+        }[]
+      }
       match_document_embeddings: {
         Args: { filter?: Json; match_count?: number; query_embedding: string }
         Returns: {

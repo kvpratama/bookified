@@ -21,8 +21,8 @@ export async function triggerIngestion(
       .single();
 
     if (queryError) {
-      console.log("DEBUG: queryError found:", queryError);
-      return { data: null, error: queryError.message };
+      console.log("DEBUG: queryError found:");
+      return { data: null, error: queryError.message || "DB error" };
     }
 
     if (doc.is_ingesting || doc.ingested_at) {

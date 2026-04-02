@@ -7,10 +7,20 @@ import { isDocumentNew } from "@/lib/document-utils";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/lib/supabase/database.types";
 
-type Document = Database["public"]["Tables"]["documents"]["Row"];
+type DocumentCard = Pick<
+  Database["public"]["Tables"]["documents"]["Row"],
+  | "id"
+  | "name"
+  | "author"
+  | "thumbnail_url"
+  | "upload_date"
+  | "last_accessed"
+  | "page_count"
+  | "current_page"
+>;
 
 interface BookCardProps {
-  doc: Document;
+  doc: DocumentCard;
 }
 
 export function BookCard({ doc }: BookCardProps) {
