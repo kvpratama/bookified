@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { ArrowLeft, FileText, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatBytes, formatDocumentName } from "@/lib/utils";
@@ -44,6 +45,13 @@ export function ChatPageClient({ document: doc }: { document: ChatDocument }) {
 function ChatPageContent({ document: doc }: { document: ChatDocument }) {
   const router = useRouter();
   const { state, actions } = useDocumentViewer();
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">

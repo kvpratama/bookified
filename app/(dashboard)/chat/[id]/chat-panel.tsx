@@ -283,6 +283,7 @@ export function ChatPanel({
             <ScrollArea
               className="flex-1 px-4 py-6"
               viewportRef={scrollViewportRef}
+              orientation="both"
             >
               <div className="space-y-8 flex flex-col pb-4">
                 {currentChat.length === 0 ? (

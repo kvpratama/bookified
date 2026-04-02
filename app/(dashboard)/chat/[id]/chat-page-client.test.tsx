@@ -202,15 +202,30 @@ describe("ChatPageClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetMockState();
+    document.body.style.overflow = "";
   });
 
   afterEach(() => {
     cleanup();
+    document.body.style.overflow = "";
   });
 
   it("renders the formatted document name", async () => {
     render(<ChatPageClient document={mockDocument} />);
     expect(await screen.findByText("Test Document")).toBeInTheDocument();
+  });
+
+  it("hides browser scrollbar on mount", async () => {
+    expect(document.body.style.overflow).toBe("");
+    render(<ChatPageClient document={mockDocument} />);
+    expect(document.body.style.overflow).toBe("hidden");
+  });
+
+  it("restores browser scrollbar on unmount", async () => {
+    const { unmount } = render(<ChatPageClient document={mockDocument} />);
+    expect(document.body.style.overflow).toBe("hidden");
+    unmount();
+    expect(document.body.style.overflow).toBe("");
   });
 
   it("renders the file size using formatBytes", () => {
