@@ -12,7 +12,8 @@ type UpdateResult = {
 export type ChatStreamEvent =
   | { type: "token"; content: string }
   | { type: "citations"; citations: Citation[] }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  | { type: "done" };
 
 type StreamChatMessageResult = {
   data: AsyncGenerator<ChatStreamEvent, void, unknown> | null;
@@ -203,6 +204,8 @@ async function* parseSSEStream(
             } catch {
               yield { type: "error", message: currentData };
             }
+          } else if (currentEvent === "done") {
+            yield { type: "done" };
           }
         }
       }

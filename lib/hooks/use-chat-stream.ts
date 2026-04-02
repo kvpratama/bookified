@@ -64,6 +64,10 @@ export function useChatStream(
             setError(event.message);
             break;
           }
+
+          if (event.type === "done") {
+            break;
+          }
         }
         console.log(
           `[useChatStream] Generator completed. Total events: ${eventCount}`,

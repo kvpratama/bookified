@@ -173,6 +173,33 @@ describe("useChatStream", () => {
     expect(onComplete).toHaveBeenCalled();
   });
 
+  it("calls onComplete and stops streaming on done event", async () => {
+    const mockGenerator = async function* () {
+      yield { type: "token" as const, content: "Hello" };
+      yield { type: "done" as const };
+      yield { type: "token" as const, content: "Should not reach" };
+    };
+
+    mockStreamChatMessage.mockResolvedValue({
+      data: mockGenerator(),
+      error: null,
+    });
+
+    const { result } = renderHook(() =>
+      useChatStream(documentId, onMessage, onComplete),
+    );
+
+    await act(async () => {
+      await result.current.sendMessage("Test message");
+    });
+
+    expect(onMessage).toHaveBeenCalledTimes(2);
+    expect(onMessage).toHaveBeenCalledWith({ type: "token", content: "Hello" });
+    expect(onMessage).toHaveBeenCalledWith({ type: "done" });
+    expect(onComplete).toHaveBeenCalled();
+    expect(result.current.isStreaming).toBe(false);
+  });
+
   it("resets error when resetError is called", async () => {
     mockStreamChatMessage.mockResolvedValue({
       data: null,

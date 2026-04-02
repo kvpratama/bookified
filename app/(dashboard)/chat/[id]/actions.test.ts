@@ -245,4 +245,40 @@ describe("streamChatMessage", () => {
 
     global.fetch = originalFetch;
   });
+
+  it("yields done event to signal completion", async () => {
+    const mockSSE = `event: done\ndata: {}\n\n`;
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(mockSSE),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          cancel: vi.fn(),
+        }),
+      },
+    });
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toBeDefined();
+
+    if (result.data) {
+      const events = [];
+      for await (const event of result.data) {
+        events.push(event);
+      }
+      expect(events).toContainEqual({ type: "done" });
+    }
+
+    global.fetch = originalFetch;
+  });
 });
