@@ -14,16 +14,36 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const { data: documents, error } = await supabase
+  const { data: allDocs, error } = await supabase
     .from("documents")
     .select("*")
-    .order("last_accessed", { ascending: false, nullsFirst: false })
-    .order("upload_date", { ascending: false })
-    .limit(4);
+    .order("upload_date", { ascending: false });
 
   if (error) {
     throw new Error("Failed to load your library. Please try again later.");
   }
+
+  // Sort with priority: new unaccessed (7 days) → recently accessed → older
+  const sevenDaysAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
+  const documents = (allDocs || [])
+    .sort((a, b) => {
+      const aIsNew =
+        !a.last_accessed && new Date(a.upload_date) >= sevenDaysAgo;
+      const bIsNew =
+        !b.last_accessed && new Date(b.upload_date) >= sevenDaysAgo;
+      const aHasAccess = !!a.last_accessed;
+      const bHasAccess = !!b.last_accessed;
+
+      if (aIsNew && !bIsNew) return -1;
+      if (!aIsNew && bIsNew) return 1;
+      if (aHasAccess && !bHasAccess && !bIsNew) return -1;
+      if (!aHasAccess && bHasAccess && !aIsNew) return 1;
+
+      return (
+        new Date(b.upload_date).getTime() - new Date(a.upload_date).getTime()
+      );
+    })
+    .slice(0, 4);
 
   const lastOpenedBook =
     documents && documents.length > 0 ? documents[0] : null;

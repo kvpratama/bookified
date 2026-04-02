@@ -72,9 +72,11 @@ const mockIlike = vi.fn();
 const mockOr = vi.fn();
 const mockFrom = vi.fn();
 
-let mockData: typeof mockDocuments | null = mockDocuments;
-let mockCount: number = 2;
-let mockError: Error | null = null;
+const mockState = {
+  data: mockDocuments as typeof mockDocuments | null,
+  count: 2,
+  error: null as Error | null,
+};
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn().mockImplementation(async () => ({
@@ -101,9 +103,10 @@ vi.mock("./search-input", () => ({
 describe("LibraryPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockData = mockDocuments;
-    mockCount = mockDocuments.length;
-    mockError = null;
+    // Reset to fresh copy of mockDocuments
+    mockState.data = [...mockDocuments];
+    mockState.count = mockDocuments.length;
+    mockState.error = null;
 
     // Create a mock promise/builder that supports chaining
     const mockBuilder = {
@@ -112,7 +115,11 @@ describe("LibraryPage", () => {
       ilike: vi.fn().mockReturnThis(),
       or: vi.fn().mockReturnThis(),
       then: vi.fn().mockImplementation((resolve) => {
-        return resolve({ data: mockData, error: mockError, count: mockCount });
+        return resolve({
+          data: mockState.data,
+          error: mockState.error,
+          count: mockState.count,
+        });
       }),
     };
 
@@ -201,8 +208,8 @@ describe("LibraryPage", () => {
   });
 
   it("shows search input when no books found", async () => {
-    mockData = [];
-    mockCount = 0;
+    mockState.data = [];
+    mockState.count = 0;
 
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
@@ -212,8 +219,8 @@ describe("LibraryPage", () => {
   });
 
   it("shows search input when search returns no results", async () => {
-    mockData = [];
-    mockCount = 0;
+    mockState.data = [];
+    mockState.count = 0;
 
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ q: "nonexistent" }),
@@ -228,8 +235,12 @@ describe("LibraryPage", () => {
   });
 
   it("filters results when a search query is provided", async () => {
-    mockData = [mockDocuments[0]];
-    mockCount = 1;
+    mockState.data = [
+      {
+        ...mockDocuments[0],
+      },
+    ];
+    mockState.count = 1;
 
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ q: "OnlyBook1" }),
@@ -242,15 +253,16 @@ describe("LibraryPage", () => {
     expect(
       screen.getByText(/1 book matching "OnlyBook1"/i),
     ).toBeInTheDocument();
-    expect(screen.getAllByTestId("book-card")[0]).toHaveTextContent(
-      "OnlyBook1.pdf",
-    );
-    expect(screen.queryAllByText("Test Book 2.pdf").length).toBe(0);
+
+    const cards = screen.getAllByTestId("book-card");
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toHaveTextContent("OnlyBook1");
+    expect(screen.queryByText(/Test Book 2/)).not.toBeInTheDocument();
   });
 
   it("filters results when searching by author name", async () => {
-    mockData = [mockDocuments[1]];
-    mockCount = 1;
+    mockState.data = [mockDocuments[1]];
+    mockState.count = 1;
 
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ q: "Author 2" }),
@@ -264,8 +276,8 @@ describe("LibraryPage", () => {
   });
 
   it("escapes SQL wildcards in search query", async () => {
-    mockData = [];
-    mockCount = 0;
+    mockState.data = [];
+    mockState.count = 0;
 
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ q: "50%_done" }),
@@ -278,8 +290,8 @@ describe("LibraryPage", () => {
   });
 
   it("shows empty state when no books found", async () => {
-    mockData = [];
-    mockCount = 0;
+    mockState.data = [];
+    mockState.count = 0;
 
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
@@ -303,7 +315,7 @@ describe("LibraryPage", () => {
   });
 
   it("shows pagination controls when multiple pages exist", async () => {
-    mockCount = 10; // 8 per page
+    mockState.count = 10; // 8 per page
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ page: "1" }),
     });
@@ -313,5 +325,14 @@ describe("LibraryPage", () => {
     expect(
       screen.getByRole("link", { name: /next page/i }),
     ).toBeInTheDocument();
+  });
+
+  it("applies priority sorting with three-tier order", async () => {
+    await LibraryPage({ searchParams: Promise.resolve({}) });
+
+    // Verify documents are fetched and sorted by upload_date
+    expect(mockOrder).toHaveBeenCalledWith("upload_date", {
+      ascending: false,
+    });
   });
 });

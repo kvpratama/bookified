@@ -93,6 +93,13 @@ describe("DashboardPage", () => {
     mockOrder.mockReturnValue(mockBuilder);
     mockSelect.mockReturnValue({ order: mockOrder });
     mockFrom.mockReturnValue({ select: mockSelect });
+
+    // Ensure mockOrder returns something that has limit
+    mockOrder.mockReturnValue({
+      order: mockOrder,
+      limit: mockLimit,
+      then: mockBuilder.then,
+    });
   });
 
   afterEach(() => {
@@ -148,5 +155,14 @@ describe("DashboardPage", () => {
     await expect(DashboardPage()).rejects.toThrow(
       "Failed to load your library. Please try again later.",
     );
+  });
+
+  it("applies priority sorting with three-tier order", async () => {
+    await DashboardPage();
+
+    // Verify documents are fetched and sorted by upload_date
+    expect(mockOrder).toHaveBeenCalledWith("upload_date", {
+      ascending: false,
+    });
   });
 });

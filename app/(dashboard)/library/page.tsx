@@ -1,12 +1,5 @@
 import Link from "next/link";
-import {
-  // Filter,
-  // LayoutGrid,
-  // List,
-  Upload,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { BookCard } from "../_components/BookCard";
@@ -35,20 +28,39 @@ export default async function LibraryPage({
   let dbQuery = supabase
     .from("documents")
     .select("*", { count: "exact" })
-    .order("last_accessed", { ascending: false, nullsFirst: false })
-    .order("upload_date", { ascending: false })
-    .range(from, to);
+    .order("upload_date", { ascending: false });
 
   if (query) {
     const escaped = query.replace(/[%_]/g, "\\$&");
     dbQuery = dbQuery.or(`name.ilike.%${escaped}%,author.ilike.%${escaped}%`);
   }
 
-  const { data: documents, error, count } = await dbQuery;
+  const { data: allDocs, error, count } = await dbQuery;
 
   if (error) {
     throw new Error("Failed to load your library. Please try again later.");
   }
+
+  // Sort with priority: new unaccessed (7 days) → recently accessed → older
+  const sevenDaysAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sortedDocs = (allDocs || []).sort((a, b) => {
+    const aIsNew = !a.last_accessed && new Date(a.upload_date) >= sevenDaysAgo;
+    const bIsNew = !b.last_accessed && new Date(b.upload_date) >= sevenDaysAgo;
+    const aHasAccess = !!a.last_accessed;
+    const bHasAccess = !!b.last_accessed;
+
+    if (aIsNew && !bIsNew) return -1;
+    if (!aIsNew && bIsNew) return 1;
+    if (aHasAccess && !bHasAccess && !bIsNew) return -1;
+    if (!aHasAccess && bHasAccess && !aIsNew) return 1;
+
+    return (
+      new Date(b.upload_date).getTime() - new Date(a.upload_date).getTime()
+    );
+  });
+
+  // Apply pagination after sorting
+  const documents = sortedDocs.slice(from, to + 1);
 
   const totalCount = count ?? 0;
   const totalPages = Math.ceil(totalCount / limit);

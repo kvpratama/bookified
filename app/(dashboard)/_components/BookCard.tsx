@@ -3,6 +3,8 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { Clock } from "lucide-react";
 import { getBlobUrl, formatDocumentName } from "@/lib/utils";
+import { isDocumentNew } from "@/lib/document-utils";
+import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Document = Database["public"]["Tables"]["documents"]["Row"];
@@ -12,6 +14,8 @@ interface BookCardProps {
 }
 
 export function BookCard({ doc }: BookCardProps) {
+  const isNew = isDocumentNew(doc.upload_date, doc.last_accessed);
+
   return (
     <Link
       href={`/chat/${doc.id}`}
@@ -19,6 +23,14 @@ export function BookCard({ doc }: BookCardProps) {
     >
       {/* Cover Image Placeholder */}
       <div className="relative aspect-3/4 w-full bg-muted overflow-hidden shadow-sm group-hover:shadow-md transition-shadow duration-300 mb-4">
+        {isNew && (
+          <Badge
+            variant="destructive"
+            className="absolute top-2 right-2 z-10 text-[10px] font-bold uppercase tracking-wider"
+          >
+            New
+          </Badge>
+        )}
         {doc.thumbnail_url ? (
           <Image
             src={getBlobUrl(doc.thumbnail_url)}
