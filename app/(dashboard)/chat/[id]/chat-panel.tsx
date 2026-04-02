@@ -64,20 +64,20 @@ export function ChatPanel({
     if (eventQueue.length === 0 || !currentAiMessageId) return;
     if (processedIndexRef.current >= eventQueue.length) return;
 
-    console.log(
-      `[ChatPanel] Processing events ${processedIndexRef.current} -> ${eventQueue.length}`,
-    );
+    // console.log(
+    //   `[ChatPanel] Processing events ${processedIndexRef.current} -> ${eventQueue.length}`,
+    // );
 
     for (let i = processedIndexRef.current; i < eventQueue.length; i++) {
       const event = eventQueue[i];
       if (event.type === "token") {
-        console.log(
-          `[ChatPanel] Updating content with token:`,
-          JSON.stringify(event.content),
-        );
+        // console.log(
+        //   `[ChatPanel] Updating content with token:`,
+        //   JSON.stringify(event.content),
+        // );
         updateMessageContent(doc.id, currentAiMessageId, event.content);
       } else if (event.type === "citations") {
-        console.log(`[ChatPanel] Updating citations:`, event.citations.length);
+        // console.log(`[ChatPanel] Updating citations:`, event.citations.length);
         updateMessageCitations(doc.id, currentAiMessageId, event.citations);
       }
     }
@@ -93,21 +93,21 @@ export function ChatPanel({
 
   // Handle streaming events - queue them for processing in useEffect
   const handleStreamEvent = useCallback((event: ChatStreamEvent) => {
-    console.log(`[ChatPanel] Queuing event:`, event.type);
+    // console.log(`[ChatPanel] Queuing event:`, event.type);
     setEventQueue((prev) => {
       const newQueue = [...prev, event];
-      console.log(
-        `[ChatPanel] Queue size: ${prev.length} -> ${newQueue.length}`,
-      );
+      // console.log(
+      //   `[ChatPanel] Queue size: ${prev.length} -> ${newQueue.length}`,
+      // );
       return newQueue;
     });
   }, []);
 
   const handleStreamComplete = useCallback(() => {
-    console.log(
-      `[ChatPanel] Stream complete, current queue length:`,
-      eventQueue.length,
-    );
+    // console.log(
+    //   `[ChatPanel] Stream complete, current queue length:`,
+    //   eventQueue.length,
+    // );
     // Don't clear currentAiMessageId here - let the useEffect finish processing
     // The ID will be cleared on next message or when component unmounts
   }, [eventQueue.length]);

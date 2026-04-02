@@ -25,7 +25,7 @@ export function useChatStream(
     async (message: string) => {
       if (!message.trim()) return;
 
-      console.log("[useChatStream] Starting to send message:", message);
+      // console.log("[useChatStream] Starting to send message:", message);
       setIsStreaming(true);
       setError(null);
 
@@ -48,12 +48,12 @@ export function useChatStream(
         return;
       }
 
-      console.log("[useChatStream] Starting to iterate generator");
+      // console.log("[useChatStream] Starting to iterate generator");
       let eventCount = 0;
       try {
         for await (const event of generator) {
           eventCount++;
-          console.log(`[useChatStream] Event #${eventCount}:`, event);
+          // console.log(`[useChatStream] Event #${eventCount}:`, event);
           onMessage(event);
 
           if (event.type === "error") {
@@ -69,9 +69,9 @@ export function useChatStream(
             break;
           }
         }
-        console.log(
-          `[useChatStream] Generator completed. Total events: ${eventCount}`,
-        );
+        // console.log(
+        //   `[useChatStream] Generator completed. Total events: ${eventCount}`,
+        // );
         onComplete();
       } catch (err) {
         const errorMessage =
@@ -79,7 +79,7 @@ export function useChatStream(
         console.error("[useChatStream] Stream error:", errorMessage);
         setError(errorMessage);
       } finally {
-        console.log("[useChatStream] Setting isStreaming to false");
+        // console.log("[useChatStream] Setting isStreaming to false");
         setIsStreaming(false);
       }
     },

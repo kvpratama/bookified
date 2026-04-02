@@ -116,15 +116,15 @@ async function* parseSSEStream(
   try {
     while (true) {
       const { done, value } = await reader.read();
-      console.log(
-        `[SSE Parser] Chunk received, done: ${done}, value length: ${value?.length}`,
-      );
+      // console.log(
+      //   `[SSE Parser] Chunk received, done: ${done}, value length: ${value?.length}`,
+      // );
 
       if (done) {
-        console.log(
-          "[SSE Parser] Stream done, final buffer:",
-          JSON.stringify(buffer),
-        );
+        // console.log(
+        //   "[SSE Parser] Stream done, final buffer:",
+        //   JSON.stringify(buffer),
+        // );
         break;
       }
 
@@ -134,9 +134,9 @@ async function* parseSSEStream(
       const normalized = buffer.replace(/\r\n/g, "\n");
       const messages = normalized.split("\n\n");
       buffer = messages.pop() || "";
-      console.log(
-        `[SSE Parser] Parsed ${messages.length} complete messages, buffer remaining: ${buffer.length} chars`,
-      );
+      // console.log(
+      //   `[SSE Parser] Parsed ${messages.length} complete messages, buffer remaining: ${buffer.length} chars`,
+      // );
 
       for (const message of messages) {
         if (!message.trim()) continue;
@@ -156,19 +156,19 @@ async function* parseSSEStream(
         // Process the complete SSE event
         if (currentEvent && currentData) {
           eventCount++;
-          console.log(`[SSE Parser] Event #${eventCount}:`, {
-            event: currentEvent,
-            dataLength: currentData.length,
-          });
+          // console.log(`[SSE Parser] Event #${eventCount}:`, {
+          //   event: currentEvent,
+          //   dataLength: currentData.length,
+          // });
 
           if (currentEvent === "token") {
             try {
               // Token data is JSON-encoded string
               const content = JSON.parse(currentData) as string;
-              console.log(
-                `[SSE Parser] Token #${eventCount}:`,
-                JSON.stringify(content),
-              );
+              // console.log(
+              //   `[SSE Parser] Token #${eventCount}:`,
+              //   JSON.stringify(content),
+              // );
               yield { type: "token", content };
             } catch (e) {
               console.error(
@@ -183,7 +183,7 @@ async function* parseSSEStream(
           } else if (currentEvent === "citations") {
             try {
               const citations = JSON.parse(currentData) as Citation[];
-              console.log("[SSE Parser] Citations:", citations.length);
+              // console.log("[SSE Parser] Citations:", citations.length);
               yield { type: "citations", citations };
             } catch (e) {
               console.error(
@@ -210,11 +210,11 @@ async function* parseSSEStream(
         }
       }
     }
-    console.log(
-      `[SSE Parser] Stream ended. Total events yielded: ${eventCount}`,
-    );
+    // console.log(
+    //   `[SSE Parser] Stream ended. Total events yielded: ${eventCount}`,
+    // );
   } finally {
     reader.cancel();
-    console.log("[SSE Parser] Reader cancelled");
+    // console.log("[SSE Parser] Reader cancelled");
   }
 }
