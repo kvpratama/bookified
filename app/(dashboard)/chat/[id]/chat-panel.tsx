@@ -16,12 +16,14 @@ import {
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
-import { useAppStore, type ChatMessage, type Citation } from "@/lib/store";
+import { useAppStore, type ChatMessage } from "@/lib/store";
 import type { ChatDocument } from "./types";
 import { cn } from "@/lib/utils";
 import { triggerIngestion } from "@/app/(dashboard)/actions";
 import { useChatStream } from "@/lib/hooks/use-chat-stream";
 import type { ChatStreamEvent } from "@/app/(dashboard)/chat/[id]/actions";
+import { CitationList } from "./citation-list";
+import { useDocumentViewer } from "./document-viewer-context";
 
 const formatTime = (isoString: string) => {
   const date = new Date(isoString);
@@ -32,24 +34,6 @@ function generateId() {
   return Math.random().toString(36).substring(7);
 }
 
-// Format citations as markdown to append to AI response content
-const formatCitationsAsMarkdown = (citations: Citation[]): string => {
-  if (!citations || citations.length === 0) return "";
-
-  const citationsMarkdown =
-    "\n\n---\n\n**Sources:**\n\n" +
-    citations
-      .map((citation, i) => {
-        const num = i + 1;
-        const text = citation.text ? `"${citation.text}"` : "";
-        const page = citation.page ? ` (Page ${citation.page})` : "";
-        return `${num}. ${text}${page}`;
-      })
-      .join("\n");
-
-  return citationsMarkdown;
-};
-
 export function ChatPanel({
   document: doc,
   open,
@@ -59,6 +43,7 @@ export function ChatPanel({
   open: boolean;
   onToggle: () => void;
 }) {
+  const { actions: viewerActions } = useDocumentViewer();
   const [inputValue, setInputValue] = useState("");
   const [currentAiMessageId, setCurrentAiMessageId] = useState<string | null>(
     null,
@@ -351,9 +336,17 @@ export function ChatPanel({
                               </div>
                               <div className="flex-1 min-w-0">
                                 {msg.content ? (
-                                  <MessageResponse className="font-serif text-[15.5px] leading-relaxed text-foreground">
-                                    {`${msg.content}${formatCitationsAsMarkdown(msg.citations || [])}`}
-                                  </MessageResponse>
+                                  <>
+                                    <MessageResponse className="font-serif text-[15.5px] leading-relaxed text-foreground">
+                                      {msg.content}
+                                    </MessageResponse>
+                                    <CitationList
+                                      citations={msg.citations || []}
+                                      onCitationClick={(page) =>
+                                        viewerActions.handlePageSelect(page)
+                                      }
+                                    />
+                                  </>
                                 ) : (
                                   <div className="py-1">
                                     <div className="flex gap-1.5 items-center h-[20px]">

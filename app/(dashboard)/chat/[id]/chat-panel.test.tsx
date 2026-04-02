@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ChatPanel } from "./chat-panel";
+import { DocumentViewerProvider } from "./document-viewer-context";
 import type { ChatMessage } from "@/lib/store";
 import type { ChatDocument } from "./types";
 
@@ -47,6 +48,17 @@ vi.mock("@/lib/supabase/client", () => ({
   }),
 }));
 
+// Mock next/navigation
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/chat/doc-1",
+}));
+
 // Mock server action
 vi.mock("@/app/(dashboard)/actions", () => ({
   triggerIngestion: vi.fn(async () => ({
@@ -54,6 +66,11 @@ vi.mock("@/app/(dashboard)/actions", () => ({
     error: null,
   })),
 }));
+
+// Helper to render with provider
+const renderWithProvider = (ui: React.ReactElement) => {
+  return render(<DocumentViewerProvider>{ui}</DocumentViewerProvider>);
+};
 
 describe("ChatPanel", () => {
   let mockOnToggle: () => void;
@@ -71,7 +88,7 @@ describe("ChatPanel", () => {
   // --- Collapsed state ---
   describe("collapsed state", () => {
     it("renders 'Open chat' button when collapsed", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={false}
@@ -84,7 +101,7 @@ describe("ChatPanel", () => {
     });
 
     it("does NOT render the chat input when collapsed", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={false}
@@ -97,7 +114,7 @@ describe("ChatPanel", () => {
     });
 
     it("calls onToggle when 'Open chat' button is clicked", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={false}
@@ -112,7 +129,7 @@ describe("ChatPanel", () => {
   // --- Expanded state ---
   describe("expanded state", () => {
     it("renders the 'Ask Document' header text", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -123,7 +140,7 @@ describe("ChatPanel", () => {
     });
 
     it("renders 'Close chat' button and clicking it calls onToggle", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -137,7 +154,7 @@ describe("ChatPanel", () => {
     });
 
     it("keeps the launcher button in the DOM but hides it from accessibility tree", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -157,7 +174,7 @@ describe("ChatPanel", () => {
 
     it("restores focus to the launcher button when closed", () => {
       vi.useFakeTimers();
-      const { rerender } = render(
+      const { rerender } = renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -170,14 +187,18 @@ describe("ChatPanel", () => {
 
       // Simulate the state change that should happen in the parent component
       rerender(
-        <ChatPanel
-          document={mockDocument}
-          open={false}
-          onToggle={mockOnToggle}
-        />,
+        <DocumentViewerProvider>
+          <ChatPanel
+            document={mockDocument}
+            open={false}
+            onToggle={mockOnToggle}
+          />
+        </DocumentViewerProvider>,
       );
 
-      vi.advanceTimersByTime(10); // Wait for our setTimeout
+      act(() => {
+        vi.advanceTimersByTime(10); // Wait for our setTimeout
+      });
       const launcher = screen.getByRole("button", { name: /open chat/i });
       expect(launcher).toHaveFocus();
 
@@ -185,7 +206,7 @@ describe("ChatPanel", () => {
     });
 
     it("shows empty state 'Ask the Document' when no messages", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -196,7 +217,7 @@ describe("ChatPanel", () => {
     });
 
     it("renders input with correct placeholder", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -209,7 +230,7 @@ describe("ChatPanel", () => {
     });
 
     it("send button is disabled when input is empty", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -222,7 +243,7 @@ describe("ChatPanel", () => {
 
     it("focuses the input when the panel opens", () => {
       vi.useFakeTimers();
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -261,7 +282,7 @@ describe("ChatPanel", () => {
     });
 
     it("renders existing messages from the store", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -277,7 +298,7 @@ describe("ChatPanel", () => {
     });
 
     it("user messages show correct content", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -290,7 +311,7 @@ describe("ChatPanel", () => {
     });
 
     it("AI messages show correct content", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -306,7 +327,7 @@ describe("ChatPanel", () => {
   // --- Sending messages ---
   describe("sending messages", () => {
     it("typing in input and clicking send calls addMessage with correct args", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -329,7 +350,7 @@ describe("ChatPanel", () => {
     });
 
     it("input is cleared after sending", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -345,7 +366,7 @@ describe("ChatPanel", () => {
     });
 
     it("pressing Enter sends the message", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -367,7 +388,7 @@ describe("ChatPanel", () => {
     });
 
     it("pressing Shift+Enter does NOT send the message", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -383,7 +404,7 @@ describe("ChatPanel", () => {
     });
 
     it("send button is disabled during typing/loading state", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -402,7 +423,7 @@ describe("ChatPanel", () => {
     it("does not call triggerIngestion when document is already ingested", async () => {
       const { triggerIngestion } = await import("@/app/(dashboard)/actions");
 
-      render(
+      renderWithProvider(
         <ChatPanel
           document={{
             ...mockDocument,
@@ -420,7 +441,7 @@ describe("ChatPanel", () => {
     it("does not call triggerIngestion when document is currently ingesting", async () => {
       const { triggerIngestion } = await import("@/app/(dashboard)/actions");
 
-      render(
+      renderWithProvider(
         <ChatPanel
           document={{ ...mockDocument, ingested_at: null, is_ingesting: true }}
           open={true}
@@ -434,7 +455,7 @@ describe("ChatPanel", () => {
     it("calls triggerIngestion when document is idle (not ingesting, not ingested)", async () => {
       const { triggerIngestion } = await import("@/app/(dashboard)/actions");
 
-      render(
+      renderWithProvider(
         <ChatPanel
           document={{ ...mockDocument, ingested_at: null, is_ingesting: false }}
           open={true}
@@ -448,7 +469,7 @@ describe("ChatPanel", () => {
     it("after AI response timeout, addMessage is called again with an AI message", () => {
       vi.useFakeTimers();
 
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={true}
@@ -486,7 +507,7 @@ describe("ChatPanel", () => {
   // --- Ingestion warning banner ---
   describe("ingestion warning", () => {
     it("shows warning when document is not ingested and not ingesting (idle)", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={{ ...mockDocument, ingested_at: null, is_ingesting: false }}
           open={true}
@@ -497,7 +518,7 @@ describe("ChatPanel", () => {
     });
 
     it("shows warning when document is currently ingesting", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={{ ...mockDocument, ingested_at: null, is_ingesting: true }}
           open={true}
@@ -508,7 +529,7 @@ describe("ChatPanel", () => {
     });
 
     it("does not show warning when document is already ingested", () => {
-      render(
+      renderWithProvider(
         <ChatPanel
           document={{
             ...mockDocument,
@@ -556,7 +577,7 @@ describe("ChatPanel", () => {
 
     it("scrolls to bottom when panel opens", () => {
       vi.useFakeTimers();
-      const { rerender } = render(
+      const { rerender } = renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={false}
@@ -564,15 +585,18 @@ describe("ChatPanel", () => {
         />,
       );
 
-      // Open the panel
+      // Open the panel - must wrap in provider again
       rerender(
-        <ChatPanel
-          document={mockDocument}
-          open={true}
-          onToggle={mockOnToggle}
-        />,
+        <DocumentViewerProvider>
+          <ChatPanel
+            document={mockDocument}
+            open={true}
+            onToggle={mockOnToggle}
+          />
+        </DocumentViewerProvider>,
       );
 
+      // Patch after opening, when viewport exists
       patchScrollViewport();
 
       // Advance past the delayed scroll (150ms)
@@ -589,7 +613,7 @@ describe("ChatPanel", () => {
 
     it("does not scroll when panel is closed", () => {
       vi.useFakeTimers();
-      render(
+      renderWithProvider(
         <ChatPanel
           document={mockDocument}
           open={false}
