@@ -89,6 +89,14 @@
       transform: scaleX(1);
     }
   }
+
+  @utility animate-fade-in-up {
+    animation: fade-in-up 0.8s ease-out;
+  }
+
+  @utility animate-scale-in {
+    animation: scale-in 1s ease-out;
+  }
   --animate-breathe: breathe 3s ease-in-out infinite;
   --animate-float: float 6s ease-in-out infinite;
   --animate-fade-in-up: fade-in-up 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;

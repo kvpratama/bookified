@@ -41,23 +41,13 @@ export function Landing() {
         <div className="absolute inset-0 bg-linear-to-t from-background via-transparent to-background/20" />
       </div>
 
-      <div className="relative z-10 max-w-2xl text-center animate-fade-in-up">
-        {/* <div className="mb-8 flex justify-center">
-          <Image
-            src="/sanctuary_logo.png"
-            alt="Sanctuary"
-            width={120}
-            height={120}
-            className="drop-shadow-lg"
-          />
-        </div> */}
-
+      <div className="relative z-10 max-w-2xl text-center animate-fade-in-up ">
         <div className="rounded-lg bg-card/60 backdrop-blur-sm border border-border/50 shadow-sm p-16 sm:p-6">
-          <h1 className="mb-6 font-serif text-[3.5rem] leading-tight tracking-tight text-foreground sm:text-[2.5rem]">
+          <h1 className="mb-10 font-serif text-[3.5rem] leading-[1.3] tracking-[0.02em] text-foreground sm:text-[2.5rem]">
             Where books think back
           </h1>
 
-          <p className="mb-8 mx-auto max-w-lg font-serif text-md leading-relaxed text-muted-foreground opacity-90 sm:text-md">
+          <p className="mb-12 mx-auto max-w-lg font-serif text-md leading-[2] tracking-[0.03em] text-muted-foreground sm:text-md">
             A sanctuary for serious readers. Upload your books and engage with
             an AI companion that understands context, remembers your journey,
             and enriches every page.
@@ -67,7 +57,7 @@ export function Landing() {
             Enter the Library
           </Button>
 
-          <div className="mt-8 h-px w-[120px] mx-auto bg-gradient-to-r from-transparent via-accent-foreground/40 to-transparent animate-scale-in" />
+          <div className="mt-10 h-px w-[120px] mx-auto bg-gradient-to-r from-transparent via-accent-foreground/40 to-transparent animate-scale-in" />
         </div>
       </div>
     </div>
