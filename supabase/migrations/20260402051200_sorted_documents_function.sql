@@ -17,6 +17,7 @@ returns table (
 ) 
 language plpgsql
 security definer
+set search_path to 'public'
 as $$
 declare
   user_uuid uuid;
@@ -43,7 +44,7 @@ begin
         when d.last_accessed is not null then 1
         else 2
       end as sort_bucket
-    from documents d
+    from public.documents d
     where d.user_id = user_uuid
       and (
         search_query is null 
@@ -71,3 +72,6 @@ begin
   offset offset_count;
 end;
 $$;
+
+grant execute on function get_sorted_documents(text, int, int) to authenticated;
+grant execute on function get_sorted_documents(text, int, int) to service_role;
