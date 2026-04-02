@@ -26,7 +26,7 @@ export function BookCard({ doc }: BookCardProps) {
         {isNew && (
           <Badge
             variant="destructive"
-            className="absolute top-2 right-2 z-10 text-[10px] font-bold uppercase tracking-wider"
+            className="absolute top-2 right-2 z-10 text-[10px] font-bold uppercase tracking-wider dark:bg-red-600"
           >
             New
           </Badge>
