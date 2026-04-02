@@ -10,7 +10,9 @@ const getDocument = cache(async (id: string) => {
   const supabase = await createClient();
   return supabase
     .from("documents")
-    .select("id, name, author, page_count, size, blob_url, current_page")
+    .select(
+      "id, name, author, page_count, size, blob_url, current_page, ingested_at, is_ingesting",
+    )
     .eq("id", id)
     .single();
 });
@@ -46,6 +48,8 @@ export default async function ChatPage({ params }: PageProps) {
     size: doc.size,
     blob_url: doc.blob_url,
     current_page: doc.current_page || 1,
+    ingested_at: doc.ingested_at,
+    is_ingesting: doc.is_ingesting,
   };
 
   return (

@@ -71,5 +71,5 @@ supabase db push
 supabase gen types typescript --local > lib/supabase/database.types.ts
 
 # 6. Remember to regenerate schema.sql
-supabase db dump --local > supabase/schemas/schema.sql
+supabase db dump --local > supabase/schema.sql
 ```

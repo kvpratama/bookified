@@ -171,6 +171,8 @@ const mockDocument: ChatDocument = {
   size: 2500000,
   blob_url: "https://example.com/test.pdf",
   current_page: 3,
+  ingested_at: "2026-03-31T00:00:00Z",
+  is_ingesting: false,
 };
 
 const mockDocumentNulls: ChatDocument = {
@@ -181,6 +183,8 @@ const mockDocumentNulls: ChatDocument = {
   size: 1024,
   blob_url: "https://example.com/another.pdf",
   current_page: 1,
+  ingested_at: null,
+  is_ingesting: false,
 };
 
 function resetMockState() {
@@ -198,15 +202,30 @@ describe("ChatPageClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetMockState();
+    document.body.style.overflow = "";
   });
 
   afterEach(() => {
     cleanup();
+    document.body.style.overflow = "";
   });
 
   it("renders the formatted document name", async () => {
     render(<ChatPageClient document={mockDocument} />);
     expect(await screen.findByText("Test Document")).toBeInTheDocument();
+  });
+
+  it("hides browser scrollbar on mount", async () => {
+    expect(document.body.style.overflow).toBe("");
+    render(<ChatPageClient document={mockDocument} />);
+    expect(document.body.style.overflow).toBe("hidden");
+  });
+
+  it("restores browser scrollbar on unmount", async () => {
+    const { unmount } = render(<ChatPageClient document={mockDocument} />);
+    expect(document.body.style.overflow).toBe("hidden");
+    unmount();
+    expect(document.body.style.overflow).toBe("");
   });
 
   it("renders the file size using formatBytes", () => {

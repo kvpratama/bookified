@@ -11,11 +11,18 @@ export interface PdfDocument {
   pageCount?: number;
 }
 
+export interface Citation {
+  page?: number;
+  text?: string;
+  [key: string]: unknown;
+}
+
 export interface ChatMessage {
   id: string;
-  role: "user" | "ai";
+  role: "user" | "ai" | "system";
   content: string;
   timestamp: string;
+  citations?: Citation[];
 }
 
 interface AppState {
@@ -24,6 +31,16 @@ interface AppState {
   lastOpenedId: string | null;
   addDocument: (doc: PdfDocument) => void;
   addMessage: (pdfId: string, message: ChatMessage) => void;
+  updateMessageContent: (
+    pdfId: string,
+    messageId: string,
+    content: string,
+  ) => void;
+  updateMessageCitations: (
+    pdfId: string,
+    messageId: string,
+    citations: Citation[],
+  ) => void;
   setLastOpened: (id: string) => void;
 }
 
@@ -108,6 +125,34 @@ export const useAppStore = create<AppState>((set) => ({
         chats: {
           ...state.chats,
           [pdfId]: [...currentMessages, message],
+        },
+      };
+    }),
+  updateMessageContent: (pdfId, messageId, newContent) =>
+    set((state) => {
+      const messages = state.chats[pdfId] || [];
+      const updatedMessages = messages.map((msg) =>
+        msg.id === messageId
+          ? { ...msg, content: msg.content + newContent }
+          : msg,
+      );
+      return {
+        chats: {
+          ...state.chats,
+          [pdfId]: updatedMessages,
+        },
+      };
+    }),
+  updateMessageCitations: (pdfId, messageId, citations) =>
+    set((state) => {
+      const messages = state.chats[pdfId] || [];
+      const updatedMessages = messages.map((msg) =>
+        msg.id === messageId ? { ...msg, citations } : msg,
+      );
+      return {
+        chats: {
+          ...state.chats,
+          [pdfId]: updatedMessages,
         },
       };
     }),

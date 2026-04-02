@@ -48,6 +48,7 @@ const mockDocuments = [
     blob_url: "https://example.com/test1.pdf",
     last_accessed: "2026-03-05T12:00:00Z",
     user_id: "user-1",
+    total_count: 2,
   },
   {
     id: "test-2",
@@ -61,6 +62,7 @@ const mockDocuments = [
     blob_url: "https://example.com/test2.pdf",
     last_accessed: "2026-03-06T12:00:00Z",
     user_id: "user-1",
+    total_count: 2,
   },
 ];
 
@@ -71,14 +73,18 @@ const mockRange = vi.fn();
 const mockIlike = vi.fn();
 const mockOr = vi.fn();
 const mockFrom = vi.fn();
+const mockRpc = vi.fn();
 
-let mockData: typeof mockDocuments | null = mockDocuments;
-let mockCount: number = 2;
-let mockError: Error | null = null;
+const mockState = {
+  data: mockDocuments as typeof mockDocuments | null,
+  count: 2,
+  error: null as Error | null,
+};
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn().mockImplementation(async () => ({
     from: mockFrom,
+    rpc: mockRpc,
   })),
 }));
 
@@ -101,18 +107,29 @@ vi.mock("./search-input", () => ({
 describe("LibraryPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockData = mockDocuments;
-    mockCount = mockDocuments.length;
-    mockError = null;
+    // Reset to fresh copy of mockDocuments
+    mockState.data = [...mockDocuments];
+    mockState.count = mockDocuments.length;
+    mockState.error = null;
 
-    // Create a mock promise/builder that supports chaining
+    // Mock rpc for get_sorted_documents - returns data directly
+    mockRpc.mockResolvedValue({
+      data: mockState.data,
+      error: mockState.error,
+    });
+
+    // Legacy mock setup for any .from() calls (not used by current implementation)
     const mockBuilder = {
       order: vi.fn().mockReturnThis(),
       range: vi.fn().mockReturnThis(),
       ilike: vi.fn().mockReturnThis(),
       or: vi.fn().mockReturnThis(),
       then: vi.fn().mockImplementation((resolve) => {
-        return resolve({ data: mockData, error: mockError, count: mockCount });
+        return resolve({
+          data: mockState.data,
+          error: mockState.error,
+          count: mockState.count,
+        });
       }),
     };
 
@@ -128,7 +145,6 @@ describe("LibraryPage", () => {
     });
     mockFrom.mockReturnValue({ select: mockSelect });
 
-    // Ensure mockOrder returns something that has range/ilike/or
     mockOrder.mockReturnValue({
       order: mockOrder,
       range: mockRange,
@@ -201,8 +217,8 @@ describe("LibraryPage", () => {
   });
 
   it("shows search input when no books found", async () => {
-    mockData = [];
-    mockCount = 0;
+    mockState.data = [];
+    mockState.count = 0;
 
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
@@ -212,8 +228,8 @@ describe("LibraryPage", () => {
   });
 
   it("shows search input when search returns no results", async () => {
-    mockData = [];
-    mockCount = 0;
+    mockState.data = [];
+    mockRpc.mockResolvedValue({ data: [], error: null });
 
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ q: "nonexistent" }),
@@ -223,69 +239,79 @@ describe("LibraryPage", () => {
       screen.getAllByPlaceholderText(/search by title or author/i)[0],
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/no books found matching "nonexistent"/i),
+      screen.getByText(/0 books matching "nonexistent"/i),
     ).toBeInTheDocument();
   });
 
   it("filters results when a search query is provided", async () => {
-    mockData = [mockDocuments[0]];
-    mockCount = 1;
+    const filteredDoc = { ...mockDocuments[0], total_count: 1 };
+    mockState.data = [filteredDoc];
+    mockRpc.mockResolvedValue({ data: [filteredDoc], error: null });
 
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ q: "OnlyBook1" }),
     });
     render(Page);
 
-    expect(mockOr).toHaveBeenCalledWith(
-      "name.ilike.%OnlyBook1%,author.ilike.%OnlyBook1%",
-    );
+    // Verify RPC was called with search query
+    expect(mockRpc).toHaveBeenCalledWith("get_sorted_documents", {
+      search_query: "OnlyBook1",
+      limit_count: 8,
+      offset_count: 0,
+    });
     expect(
       screen.getByText(/1 book matching "OnlyBook1"/i),
     ).toBeInTheDocument();
-    expect(screen.getAllByTestId("book-card")[0]).toHaveTextContent(
-      "OnlyBook1.pdf",
-    );
-    expect(screen.queryAllByText("Test Book 2.pdf").length).toBe(0);
+
+    const cards = screen.getAllByTestId("book-card");
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toHaveTextContent("OnlyBook1");
+    expect(screen.queryByText(/Test Book 2/)).not.toBeInTheDocument();
   });
 
   it("filters results when searching by author name", async () => {
-    mockData = [mockDocuments[1]];
-    mockCount = 1;
+    const filteredDoc = { ...mockDocuments[1], total_count: 1 };
+    mockState.data = [filteredDoc];
+    mockRpc.mockResolvedValue({ data: [filteredDoc], error: null });
 
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ q: "Author 2" }),
     });
     render(Page);
 
-    expect(mockOr).toHaveBeenCalledWith(
-      "name.ilike.%Author 2%,author.ilike.%Author 2%",
-    );
+    // Verify RPC was called with search query
+    expect(mockRpc).toHaveBeenCalledWith("get_sorted_documents", {
+      search_query: "Author 2",
+      limit_count: 8,
+      offset_count: 0,
+    });
     expect(screen.getByText(/1 book matching "Author 2"/i)).toBeInTheDocument();
   });
 
   it("escapes SQL wildcards in search query", async () => {
-    mockData = [];
-    mockCount = 0;
+    mockState.data = [];
+    mockRpc.mockResolvedValue({ data: [], error: null });
 
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ q: "50%_done" }),
     });
     render(Page);
 
-    expect(mockOr).toHaveBeenCalledWith(
-      "name.ilike.%50\\%\\_done%,author.ilike.%50\\%\\_done%",
-    );
+    // Verify RPC was called with the search query (escaping is handled by the RPC function)
+    expect(mockRpc).toHaveBeenCalledWith("get_sorted_documents", {
+      search_query: "50%_done",
+      limit_count: 8,
+      offset_count: 0,
+    });
   });
 
   it("shows empty state when no books found", async () => {
-    mockData = [];
-    mockCount = 0;
+    mockState.data = [];
+    mockRpc.mockResolvedValue({ data: [], error: null });
 
     const Page = await LibraryPage({ searchParams: Promise.resolve({}) });
     render(Page);
-    expect(
-      screen.getByText(/no books found in your library/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/0 books in your collection/i)).toBeInTheDocument();
     expect(
       screen.getAllByPlaceholderText(/search by title or author/i)[0],
     ).toBeInTheDocument();
@@ -303,7 +329,14 @@ describe("LibraryPage", () => {
   });
 
   it("shows pagination controls when multiple pages exist", async () => {
-    mockCount = 10; // 8 per page
+    // Mock 10 total documents (will show page 1 of 2)
+    const docsWithCount = mockDocuments.map((doc) => ({
+      ...doc,
+      total_count: 10,
+    }));
+    mockState.data = docsWithCount;
+    mockRpc.mockResolvedValue({ data: docsWithCount, error: null });
+
     const Page = await LibraryPage({
       searchParams: Promise.resolve({ page: "1" }),
     });
@@ -313,5 +346,16 @@ describe("LibraryPage", () => {
     expect(
       screen.getByRole("link", { name: /next page/i }),
     ).toBeInTheDocument();
+  });
+
+  it("applies priority sorting with three-tier order", async () => {
+    await LibraryPage({ searchParams: Promise.resolve({}) });
+
+    // Verify RPC was called (sorting is handled by the database function)
+    expect(mockRpc).toHaveBeenCalledWith("get_sorted_documents", {
+      search_query: undefined,
+      limit_count: 8,
+      offset_count: 0,
+    });
   });
 });

@@ -3,13 +3,18 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Play, BookOpen } from "lucide-react";
-import type { Tables } from "@/lib/supabase/database.types";
+import type { Database } from "@/lib/supabase/database.types";
 import { getBlobUrl, formatDocumentName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
+type DocumentCard = Pick<
+  Database["public"]["Tables"]["documents"]["Row"],
+  "id" | "name" | "author" | "thumbnail_url" | "page_count" | "current_page"
+>;
+
 interface ContinueReadingProps {
-  document: Tables<"documents">;
+  document: DocumentCard;
 }
 
 export function ContinueReading({ document }: ContinueReadingProps) {

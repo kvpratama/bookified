@@ -3,6 +3,7 @@
 import { del } from "@vercel/blob";
 import { createClient } from "@/lib/supabase/server";
 import { saveDocumentSchema } from "./upload-schema";
+import { triggerIngestion } from "@/app/(dashboard)/actions";
 
 export async function saveDocumentAction(data: {
   name: string;
@@ -58,6 +59,12 @@ export async function saveDocumentAction(data: {
       console.error("DB Error:", dbError);
       throw new Error("Database insertion failed");
     }
+
+    // Trigger ingestion in the background (non-blocking)
+    // Errors are logged but don't fail the save operation
+    triggerIngestion(document.id).catch((err) => {
+      console.error("Failed to trigger ingestion:", err);
+    });
 
     return { data: document };
   } catch (err) {

@@ -14,19 +14,18 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const { data: documents, error } = await supabase
-    .from("documents")
-    .select("*")
-    .order("last_accessed", { ascending: false, nullsFirst: false })
-    .order("upload_date", { ascending: false })
-    .limit(4);
+  const { data, error } = await supabase.rpc("get_sorted_documents", {
+    search_query: undefined,
+    limit_count: 4,
+    offset_count: 0,
+  });
 
   if (error) {
     throw new Error("Failed to load your library. Please try again later.");
   }
 
-  const lastOpenedBook =
-    documents && documents.length > 0 ? documents[0] : null;
+  const documents = data || [];
+  const lastOpenedBook = documents.length > 0 ? documents[0] : null;
 
   return (
     <div className="flex flex-col min-h-screen max-w-7xl mx-auto w-full px-4 sm:px-6 py-12">

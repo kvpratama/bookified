@@ -35,12 +35,12 @@ export async function POST(request: Request): Promise<NextResponse> {
           throw new Error("Invalid upload path: Must start with your user ID");
         }
 
-        console.log(
-          "Generating upload token for user:",
-          user.id,
-          "path:",
-          pathname,
-        );
+        // console.log(
+        //   "Generating upload token for user:",
+        //   user.id,
+        //   "path:",
+        //   pathname,
+        // );
 
         // 3. Define permissions
         return {
@@ -52,7 +52,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         };
       },
       onUploadCompleted: async ({ blob, tokenPayload }) => {
-        console.log("Upload completed for", blob.url);
+        // console.log("Upload completed for", blob.url);
         try {
           const { userId } = JSON.parse(tokenPayload!);
           console.log("User who uploaded:", userId);

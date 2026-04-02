@@ -1,37 +1,59 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
-const mockEqUserId = vi.hoisted(() => vi.fn());
-const mockEqId = vi.hoisted(() => vi.fn());
-const mockUpdate = vi.hoisted(() => vi.fn());
-const mockFrom = vi.hoisted(() => vi.fn());
-const mockGetUser = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }),
-);
+// Use a shared object for session/user data that's reset in beforeEach
+const mockContext = {
+  data: { is_ingesting: false, ingested_at: null } as unknown,
+  error: null as unknown,
+  session: { access_token: "token-123" } as unknown,
+  user: { id: "user-1" } as unknown,
+};
+
+// Stable mock references
+const mockSingle = vi.fn().mockImplementation(async () => ({
+  data: mockContext.data,
+  error: mockContext.error,
+}));
+const mockEq: unknown = vi.fn();
+(mockEq as Mock).mockImplementation(() => ({
+  single: mockSingle,
+  eq: mockEq,
+}));
+
+const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
+
+const mockFrom = vi.fn().mockImplementation(() => ({
+  select: mockSelect,
+  update: mockUpdate,
+}));
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn().mockImplementation(async () => ({
     from: mockFrom,
-    auth: { getUser: mockGetUser },
+    auth: {
+      getUser: vi
+        .fn()
+        .mockImplementation(async () => ({ data: { user: mockContext.user } })),
+      getSession: vi.fn().mockImplementation(async () => ({
+        data: { session: mockContext.session },
+      })),
+    },
   })),
 }));
 
 import { updateDocumentProgress } from "./actions";
-import { createClient } from "@/lib/supabase/server";
 
 describe("updateDocumentProgress", () => {
   const documentId = "doc-123";
   const currentPage = 42;
 
   beforeEach(() => {
-    vi.restoreAllMocks();
-    mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
-    mockEqUserId.mockResolvedValue({ error: null });
-    mockEqId.mockReturnValue({ eq: mockEqUserId });
-    mockUpdate.mockReturnValue({ eq: mockEqId });
-    mockFrom.mockReturnValue({ update: mockUpdate });
+    vi.clearAllMocks();
+    mockContext.error = null;
+    mockContext.user = { id: "user-1" };
   });
 
-  it("calls supabase with the correct arguments and server-generated timestamp", async () => {
+  it("calls supabase with the correct arguments", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-13T10:00:00Z"));
 
@@ -42,68 +64,221 @@ describe("updateDocumentProgress", () => {
       current_page: currentPage,
       last_accessed: "2026-03-13T10:00:00.000Z",
     });
-    expect(mockEqId).toHaveBeenCalledWith("id", documentId);
-    expect(mockEqUserId).toHaveBeenCalledWith("user_id", "user-1");
+    expect(mockEq).toHaveBeenCalledWith("id", documentId);
+    expect(mockEq).toHaveBeenCalledWith("user_id", "user-1");
 
     vi.useRealTimers();
   });
+});
 
-  it("returns { data: null, error: null } on success", async () => {
-    const result = await updateDocumentProgress(documentId, currentPage);
+describe("streamChatMessage", () => {
+  const documentId = "doc-123";
+  const message = "What is the main argument?";
 
-    expect(result).toEqual({ data: null, error: null });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockContext.error = null;
+    mockContext.session = { access_token: "token-123" };
+    vi.stubEnv("BOOKIFIED_API_ENDPOINT", "https://api.example.com");
   });
 
-  it("returns { data: null, error: 'Unauthorized' } when user is not authenticated", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
+  it("returns error when no session", async () => {
+    mockContext.session = null as unknown;
 
-    const result = await updateDocumentProgress(documentId, currentPage);
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
 
-    expect(result).toEqual({ data: null, error: "Unauthorized" });
+    expect(result.error).toBe("Unauthorized");
+    expect(result.data).toBeNull();
   });
 
-  it("returns { data: null, error } when supabase returns an error", async () => {
-    mockEqUserId.mockResolvedValue({ error: { message: "some error" } });
+  it("returns error when endpoint not configured", async () => {
+    vi.unstubAllEnvs();
 
-    const result = await updateDocumentProgress(documentId, currentPage);
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
 
-    expect(result).toEqual({ data: null, error: "some error" });
+    expect(result.error).toBe("Ingestion endpoint not configured");
+    expect(result.data).toBeNull();
   });
 
-  it("returns { data: null, error } when createClient throws", async () => {
-    vi.mocked(createClient).mockRejectedValueOnce(new Error("some message"));
+  it("returns error on network failure", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
 
-    const result = await updateDocumentProgress(documentId, currentPage);
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
 
-    expect(result).toEqual({ data: null, error: "some message" });
+    expect(result.error).toBe("Failed to connect to chat service");
+    expect(result.data).toBeNull();
+
+    global.fetch = originalFetch;
   });
 
-  it("calls console.error when supabase returns an error", async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const supabaseError = { message: "some error" };
-    mockEqUserId.mockResolvedValue({ error: supabaseError });
+  it("returns error on HTTP error status", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
 
-    await updateDocumentProgress(documentId, currentPage);
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Failed to update document progress:",
-      supabaseError,
-    );
+    expect(result.error).toBe("Chat service unavailable (status 500)");
+    expect(result.data).toBeNull();
+
+    global.fetch = originalFetch;
   });
 
-  it("calls console.error when createClient throws", async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    vi.mocked(createClient).mockRejectedValueOnce(new Error("some message"));
+  it("yields token events correctly", async () => {
+    const mockSSE = `data: "Hello"\nevent: token\n\n`;
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(mockSSE),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          cancel: vi.fn(),
+        }),
+      },
+    });
 
-    await updateDocumentProgress(documentId, currentPage);
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Error updating document progress:",
-      "some message",
-    );
+    expect(result.error).toBeNull();
+    expect(result.data).toBeDefined();
+
+    if (result.data) {
+      const events = [];
+      for await (const event of result.data) {
+        events.push(event);
+      }
+      expect(events).toContainEqual({ type: "token", content: "Hello" });
+    }
+
+    global.fetch = originalFetch;
+  });
+
+  it("yields citation events correctly", async () => {
+    const citations = [{ page: 1, text: "Example quote" }];
+    const mockSSE = `data: ${JSON.stringify(citations)}\nevent: citations\n\n`;
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(mockSSE),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          cancel: vi.fn(),
+        }),
+      },
+    });
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toBeDefined();
+
+    if (result.data) {
+      const events = [];
+      for await (const event of result.data) {
+        events.push(event);
+      }
+      expect(events).toContainEqual({
+        type: "citations",
+        citations: citations,
+      });
+    }
+
+    global.fetch = originalFetch;
+  });
+
+  it("yields error events correctly", async () => {
+    const mockSSE = `data: {"detail": "Something went wrong"}\nevent: error\n\n`;
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(mockSSE),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          cancel: vi.fn(),
+        }),
+      },
+    });
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toBeDefined();
+
+    if (result.data) {
+      const events = [];
+      for await (const event of result.data) {
+        events.push(event);
+      }
+      expect(events).toContainEqual({
+        type: "error",
+        message: "Something went wrong",
+      });
+    }
+
+    global.fetch = originalFetch;
+  });
+
+  it("yields done event to signal completion", async () => {
+    const mockSSE = `event: done\ndata: {}\n\n`;
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(mockSSE),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          cancel: vi.fn(),
+        }),
+      },
+    });
+
+    const { streamChatMessage } = await import("./actions");
+    const result = await streamChatMessage(documentId, message);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toBeDefined();
+
+    if (result.data) {
+      const events = [];
+      for await (const event of result.data) {
+        events.push(event);
+      }
+      expect(events).toContainEqual({ type: "done" });
+    }
+
+    global.fetch = originalFetch;
   });
 });

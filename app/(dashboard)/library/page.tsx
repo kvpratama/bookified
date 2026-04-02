@@ -1,12 +1,5 @@
 import Link from "next/link";
-import {
-  // Filter,
-  // LayoutGrid,
-  // List,
-  Upload,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { BookCard } from "../_components/BookCard";
@@ -28,31 +21,23 @@ export default async function LibraryPage({
   const page = Math.max(1, parseInt(pageParam || "1", 10) || 1);
   const limit = 8;
   const from = (page - 1) * limit;
-  const to = from + limit - 1;
 
   const supabase = await createClient();
 
-  let dbQuery = supabase
-    .from("documents")
-    .select("*", { count: "exact" })
-    .order("last_accessed", { ascending: false, nullsFirst: false })
-    .order("upload_date", { ascending: false })
-    .range(from, to);
-
-  if (query) {
-    const escaped = query.replace(/[%_]/g, "\\$&");
-    dbQuery = dbQuery.or(`name.ilike.%${escaped}%,author.ilike.%${escaped}%`);
-  }
-
-  const { data: documents, error, count } = await dbQuery;
+  const { data, error } = await supabase.rpc("get_sorted_documents", {
+    search_query: query,
+    limit_count: limit,
+    offset_count: from,
+  });
 
   if (error) {
     throw new Error("Failed to load your library. Please try again later.");
   }
 
-  const totalCount = count ?? 0;
-  const totalPages = Math.ceil(totalCount / limit);
-  const currentCount = documents?.length ?? 0;
+  const documents = data || [];
+  const totalCount = documents[0]?.total_count ?? 0;
+  const totalPages = Math.ceil(Number(totalCount) / limit);
+  const currentCount = documents.length;
 
   return (
     <div className="flex flex-col min-h-screen max-w-7xl mx-auto w-full px-4 sm:px-6 py-12">

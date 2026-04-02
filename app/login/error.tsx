@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 
 export default function LoginError({
-  error,
   reset,
 }: {
   error: Error;

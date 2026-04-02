@@ -54,6 +54,7 @@ const mockSelect = vi.fn();
 const mockOrder = vi.fn();
 const mockLimit = vi.fn();
 const mockFrom = vi.fn();
+const mockRpc = vi.fn();
 
 let mockData: typeof mockDocuments | null = mockDocuments;
 let mockError: Error | null = null;
@@ -61,6 +62,7 @@ let mockError: Error | null = null;
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn().mockImplementation(async () => ({
     from: mockFrom,
+    rpc: mockRpc,
   })),
 }));
 
@@ -80,7 +82,10 @@ describe("DashboardPage", () => {
     mockData = mockDocuments;
     mockError = null;
 
-    // Create a mock promise/builder that supports chaining
+    // Mock rpc for get_sorted_documents - returns data directly, not wrapped
+    mockRpc.mockResolvedValue({ data: mockData, error: mockError });
+
+    // Legacy mock setup for any .from() calls (not used by current implementation)
     const mockBuilder = {
       order: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
@@ -93,6 +98,12 @@ describe("DashboardPage", () => {
     mockOrder.mockReturnValue(mockBuilder);
     mockSelect.mockReturnValue({ order: mockOrder });
     mockFrom.mockReturnValue({ select: mockSelect });
+
+    mockOrder.mockReturnValue({
+      order: mockOrder,
+      limit: mockLimit,
+      then: mockBuilder.then,
+    });
   });
 
   afterEach(() => {
@@ -133,6 +144,7 @@ describe("DashboardPage", () => {
 
   it("shows empty state when no documents exist", async () => {
     mockData = [];
+    mockRpc.mockResolvedValue({ data: [], error: null });
 
     const Page = await DashboardPage();
     render(Page);
@@ -142,11 +154,22 @@ describe("DashboardPage", () => {
   });
 
   it("throws when Supabase returns an error", async () => {
-    mockData = null;
     mockError = new Error("DB error");
+    mockRpc.mockResolvedValue({ data: null, error: mockError });
 
     await expect(DashboardPage()).rejects.toThrow(
       "Failed to load your library. Please try again later.",
     );
+  });
+
+  it("applies priority sorting with three-tier order", async () => {
+    await DashboardPage();
+
+    // Verify RPC was called with correct parameters
+    expect(mockRpc).toHaveBeenCalledWith("get_sorted_documents", {
+      search_query: undefined,
+      limit_count: 4,
+      offset_count: 0,
+    });
   });
 });
