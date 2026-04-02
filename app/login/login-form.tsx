@@ -26,7 +26,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Mail, BookOpen, ArrowRight, ChevronLeft, Loader2 } from "lucide-react";
+import { Mail, ArrowRight, ChevronLeft, Loader2 } from "lucide-react";
+import Image from "next/image";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -110,8 +111,14 @@ export function LoginForm({
     <Card className="w-full max-w-sm overflow-hidden border-border/50 bg-card/80 shadow-2xl backdrop-blur-md transition-shadow duration-500">
       <CardHeader className="space-y-4 pb-8 text-center">
         <div className="flex justify-center">
-          <div className="rounded-full bg-primary/5 p-3 text-primary ring-1 ring-primary/20">
-            <BookOpen className="h-6 w-6" aria-hidden="true" />
+          <div className="rounded-full bg-white p-3 text-primary ring-1 ring-primary/20">
+            <Image
+              src="/sanctuary_logo.png"
+              alt="Sanctuary"
+              width={24}
+              height={24}
+              className="h-6 w-6"
+            />
           </div>
         </div>
         <div className="space-y-1">
