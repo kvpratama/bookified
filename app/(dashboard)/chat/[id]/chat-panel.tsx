@@ -254,7 +254,7 @@ export function ChatPanel({
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="w-full sm:max-w-[400px] p-0 gap-0"
+          className="w-full sm:max-w-[400px] md:max-w-[600px] p-0 gap-0"
         >
           <SheetTitle className="sr-only">Chat</SheetTitle>
           <div className="flex flex-col h-full bg-background/50 relative">
@@ -350,9 +350,19 @@ export function ChatPanel({
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <MessageResponse className="font-serif text-[15.5px] leading-relaxed text-foreground">
-                                  {`${msg.content}${formatCitationsAsMarkdown(msg.citations || [])}`}
-                                </MessageResponse>
+                                {msg.content ? (
+                                  <MessageResponse className="font-serif text-[15.5px] leading-relaxed text-foreground">
+                                    {`${msg.content}${formatCitationsAsMarkdown(msg.citations || [])}`}
+                                  </MessageResponse>
+                                ) : (
+                                  <div className="py-1">
+                                    <div className="flex gap-1.5 items-center h-[20px]">
+                                      <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                      <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                      <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </MessageContent>
@@ -363,30 +373,6 @@ export function ChatPanel({
                       )}
                     </div>
                   ))
-                )}
-
-                {isStreaming && (
-                  <Message
-                    from="assistant"
-                    className="max-w-[92%] animate-in fade-in slide-in-from-bottom-2 duration-500"
-                  >
-                    <MessageContent className="p-0 gap-0 min-w-[280px]">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 shrink-0">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
-                            <Sparkles className="w-3.5 h-3.5" />
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0 py-1">
-                          <div className="flex gap-1.5 items-center h-[20px]">
-                            <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                            <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                            <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
-                          </div>
-                        </div>
-                      </div>
-                    </MessageContent>
-                  </Message>
                 )}
               </div>
             </ScrollArea>
