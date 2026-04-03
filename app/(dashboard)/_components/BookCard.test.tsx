@@ -1,5 +1,5 @@
 import { render, screen, cleanup } from "@testing-library/react";
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { BookCard } from "./BookCard";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -39,7 +39,13 @@ const baseDoc: Document = {
 };
 
 describe("BookCard", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-02T11:18:00Z"));
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
     cleanup();
   });
 
