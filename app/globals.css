@@ -89,9 +89,77 @@
       transform: scaleX(1);
     }
   }
+  @keyframes shimmer {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+  @keyframes drift {
+    0% {
+      transform: translateY(0) translateX(0);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.4;
+    }
+    90% {
+      opacity: 0.4;
+    }
+    100% {
+      transform: translateY(-100px) translateX(20px);
+      opacity: 0;
+    }
+  }
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 20px 2px oklch(var(--terracotta) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px 8px oklch(var(--terracotta) / 0.5);
+    }
+  }
+  @keyframes draw-line {
+    from {
+      width: 0;
+    }
+    to {
+      width: 100%;
+    }
+  }
+  @keyframes soft-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.02);
+      opacity: 1;
+    }
+  }
+  @keyframes text-glow {
+    0%,
+    100% {
+      text-shadow: 0 0 20px oklch(var(--foreground) / 0.1);
+    }
+    50% {
+      text-shadow: 0 0 30px oklch(var(--foreground) / 0.2);
+    }
+  }
 
   --animate-breathe: breathe 3s ease-in-out infinite;
   --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 3s ease-in-out infinite;
+  --animate-drift: drift 8s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
+  --animate-draw-line: draw-line 1.2s ease-out forwards;
+  --animate-soft-pulse: soft-pulse 4s ease-in-out infinite;
+  --animate-text-glow: text-glow 3s ease-in-out infinite;
 }
 
 @utility animate-fade-in-up {
@@ -100,6 +168,30 @@
 
 @utility animate-scale-in {
   animation: scale-in 1s ease-out;
+}
+
+@utility animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@utility animate-drift {
+  animation: drift 8s ease-in-out infinite;
+}
+
+@utility animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@utility animate-draw-line {
+  animation: draw-line 1.2s ease-out forwards;
+}
+
+@utility animate-soft-pulse {
+  animation: soft-pulse 4s ease-in-out infinite;
+}
+
+@utility animate-text-glow {
+  animation: text-glow 3s ease-in-out infinite;
 }
 
 :root {
