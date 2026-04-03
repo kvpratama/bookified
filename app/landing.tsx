@@ -71,13 +71,6 @@ export function Landing() {
     }, 300);
   };
 
-  const particles = Array.from({ length: 12 }, (_, i) => ({
-    id: i,
-    left: `${10 + i * 8}%`,
-    delay: `${i * 0.6}s`,
-    duration: `${6 + (i % 4)}s`,
-  }));
-
   return (
     <div
       className={`relative min-h-screen flex items-center justify-center px-6 overflow-hidden transition-opacity duration-500 ${
@@ -114,22 +107,6 @@ export function Landing() {
       <div className="absolute inset-0 z-3 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_30%,oklch(var(--background)/0.6)_100%)] pointer-events-none" />
       <div className="absolute inset-0 z-3 bg-[radial-gradient(circle_at_top_left,oklch(var(--dark-chocolate)/0.15)_0%,transparent_50%)] pointer-events-none" />
       <div className="absolute inset-0 z-3 bg-[radial-gradient(circle_at_bottom_right,oklch(var(--dark-chocolate)/0.15)_0%,transparent_50%)] pointer-events-none" />
-
-      {/* Floating Dust Particles */}
-      <div className="absolute inset-0 z-4 pointer-events-none overflow-hidden">
-        {particles.map((particle) => (
-          <div
-            key={particle.id}
-            className="absolute w-1 h-1 rounded-full bg-foreground/90 dark:bg-foreground/70 animate-drift"
-            style={{
-              left: particle.left,
-              top: `${80 + (particle.id % 5) * 4}%`,
-              animationDelay: particle.delay,
-              animationDuration: particle.duration,
-            }}
-          />
-        ))}
-      </div>
 
       {/* Main Content */}
       <div className="relative z-10 max-w-3xl text-center px-4 mt-10">
