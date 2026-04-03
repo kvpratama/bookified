@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { toast } from "sonner";
 
 const PHRASES = [
   "reading comes alive",
@@ -24,7 +25,7 @@ export function Landing() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 50);
@@ -61,14 +62,19 @@ export function Landing() {
 
   const handleEnter = async () => {
     setIsNavigating(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    setTimeout(() => {
-      router.push(user ? "/dashboard" : "/login");
-    }, 300);
+      setTimeout(() => {
+        router.push(user ? "/dashboard" : "/login");
+      }, 300);
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+      setIsNavigating(false);
+    }
   };
 
   return (

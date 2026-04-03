@@ -2,16 +2,25 @@ import { cn } from "@/lib/utils";
 
 interface LogoProps {
   size?: number;
+  width?: number;
+  height?: number;
   className?: string;
 }
 
-export function Logo({ size = 40, className }: LogoProps) {
+const VIEWBOX_W = 392;
+const VIEWBOX_H = 378;
+const ASPECT = VIEWBOX_W / VIEWBOX_H;
+
+export function Logo({ size = 40, width, height, className }: LogoProps) {
+  const resolvedWidth = width ?? (height ? height * ASPECT : size);
+  const resolvedHeight = height ?? (width ? width / ASPECT : size / ASPECT);
+
   return (
     <svg
       version="1.0"
       xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
+      width={resolvedWidth}
+      height={resolvedHeight}
       viewBox="0 0 392 378"
       preserveAspectRatio="xMidYMid meet"
       className={cn("text-foreground", className)}
