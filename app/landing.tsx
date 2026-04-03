@@ -66,7 +66,7 @@ export function Landing() {
           src="/landing-bg.png"
           alt="Library Background"
           fill
-          className="object-cover brightness-90 dark:brightness-50"
+          className="object-cover blur-sm brightness-70 dark:brightness-50"
           priority
         />
       </div>
