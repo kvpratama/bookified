@@ -2,22 +2,51 @@
 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/logo";
+
+const PHRASES = [
+  "reading comes alive",
+  "books think back",
+  "stories speak back",
+];
+
+const ROTATION_INTERVAL = 4000;
+const TRANSITION_DURATION = 1000;
 
 export function Landing() {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isLoaded, setIsLoaded] = useState(false);
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 50);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      timeoutRef.current = setTimeout(() => {
+        setPhraseIndex((prev) => (prev + 1) % PHRASES.length);
+        setIsTransitioning(false);
+      }, TRANSITION_DURATION);
+    }, ROTATION_INTERVAL);
+
+    return () => {
+      clearInterval(interval);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [isLoaded]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const x = (e.clientX / window.innerWidth - 0.5) * 20;
@@ -66,7 +95,7 @@ export function Landing() {
           src="/landing-bg.png"
           alt="Library Background"
           fill
-          className="object-cover blur-sm brightness-70 dark:brightness-50"
+          className="object-cover blur-sm brightness-40"
           priority
         />
       </div>
@@ -103,7 +132,7 @@ export function Landing() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 max-w-3xl text-center px-4">
+      <div className="relative z-10 max-w-3xl text-center px-4 mt-10">
         <Logo
           className={`mx-auto mb-8 transition-all duration-1000 delay-100 ease-out drop-shadow-md ${
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -111,16 +140,25 @@ export function Landing() {
         />
         {/* Headline */}
         <h1
-          className={`font-serif text-[5rem] sm:text-[3.5rem] leading-[1.1] tracking-[-0.02em] text-foreground mb-6 transition-all duration-1000 delay-200 ease-out drop-shadow-md ${
+          className={`font-serif text-[3rem] sm:text-[3rem] leading-[1.1] tracking-[-0.02em] text-foreground mb-6 transition-all duration-1000 delay-200 ease-out drop-shadow-md ${
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          Where books{" "}
-          <span className="relative inline-block">
-            <span className="relative z-10 text-accent-foreground">
-              think back
+          Where{" "}
+          <span className="relative inline-block align-bottom sm:text-left">
+            {/* Invisible sizer to reserve width for the longest phrase */}
+            <span className="invisible text-left" aria-hidden="true">
+              {PHRASES.reduce((a, b) => (a.length > b.length ? a : b))}
             </span>
-            <div className="absolute -bottom-1 left-0 right-0 h-2 bg-accent-foreground/20 blur-sm" />
+            <span
+              className={`absolute inset-0 z-10 text-accent-foreground transition-all duration-700 ease-in-out ${
+                isTransitioning
+                  ? "opacity-0 -translate-y-4"
+                  : "opacity-100 translate-y-0"
+              }`}
+            >
+              {PHRASES[phraseIndex]}
+            </span>
           </span>
         </h1>
 
