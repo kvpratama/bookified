@@ -100,7 +100,7 @@ export function Landing() {
       </div>
 
       {/* Warm Light Rays */}
-      <div className="absolute inset-0 z-1 pointer-events-none">
+      <div className="absolute inset-0 z-10 pointer-events-none">
         <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_180deg_at_50%_50%,transparent_0deg,oklch(var(--terracotta)/0.08)_60deg,transparent_120deg)] animate-soft-pulse" />
         <div
           className="absolute -top-1/2 -right-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,oklch(var(--terracotta)/0.06)_45deg,transparent_90deg)] animate-soft-pulse"
@@ -109,13 +109,13 @@ export function Landing() {
       </div>
 
       {/* Overlay & Vignette */}
-      <div className="absolute inset-0 z-2 bg-background/50 backdrop-blur-small transition-colors duration-1000" />
-      <div className="absolute inset-0 z-3 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_30%,oklch(var(--background)/0.6)_100%)] pointer-events-none" />
-      <div className="absolute inset-0 z-3 bg-[radial-gradient(circle_at_top_left,oklch(var(--dark-chocolate)/0.15)_0%,transparent_50%)] pointer-events-none" />
-      <div className="absolute inset-0 z-3 bg-[radial-gradient(circle_at_bottom_right,oklch(var(--dark-chocolate)/0.15)_0%,transparent_50%)] pointer-events-none" />
+      <div className="absolute inset-0 z-20 bg-background/50 backdrop-blur-small transition-colors duration-1000" />
+      <div className="absolute inset-0 z-30 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_30%,oklch(var(--background)/0.6)_100%)] pointer-events-none" />
+      <div className="absolute inset-0 z-30 bg-[radial-gradient(circle_at_top_left,oklch(var(--dark-chocolate)/0.15)_0%,transparent_50%)] pointer-events-none" />
+      <div className="absolute inset-0 z-30 bg-[radial-gradient(circle_at_bottom_right,oklch(var(--dark-chocolate)/0.15)_0%,transparent_50%)] pointer-events-none" />
 
       {/* Main Content */}
-      <div className="relative z-10 max-w-3xl text-center px-4 mt-10">
+      <div className="relative z-40 max-w-3xl text-center px-4 mt-10">
         <Logo
           className={`mx-auto mb-8 transition-all duration-1000 delay-100 ease-out drop-shadow-md ${
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -134,7 +134,7 @@ export function Landing() {
               {PHRASES.reduce((a, b) => (a.length > b.length ? a : b))}
             </span>
             <span
-              className={`absolute inset-0 z-10 text-accent-foreground transition-all duration-700 ease-in-out ${
+              className={`absolute inset-0 z-40 text-accent-foreground transition-all duration-700 ease-in-out ${
                 isTransitioning
                   ? "opacity-0 -translate-y-4"
                   : "opacity-100 translate-y-0"
