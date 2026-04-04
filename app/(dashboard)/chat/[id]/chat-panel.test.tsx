@@ -136,7 +136,7 @@ describe("ChatPanel", () => {
           onToggle={mockOnToggle}
         />,
       );
-      expect(screen.getByText("Ask Document")).toBeInTheDocument();
+      expect(screen.getByText("Reading Companion")).toBeInTheDocument();
     });
 
     it("renders 'Close chat' button and clicking it calls onToggle", () => {
@@ -213,7 +213,7 @@ describe("ChatPanel", () => {
           onToggle={mockOnToggle}
         />,
       );
-      expect(screen.getByText("Ask the Document")).toBeInTheDocument();
+      expect(screen.getByText("Begin Your Inquiry")).toBeInTheDocument();
     });
 
     it("renders input with correct placeholder", () => {
@@ -225,7 +225,7 @@ describe("ChatPanel", () => {
         />,
       );
       expect(
-        screen.getByPlaceholderText("Ask about this document…"),
+        screen.getByPlaceholderText("What would you like to explore?"),
       ).toBeInTheDocument();
     });
 
@@ -514,7 +514,7 @@ describe("ChatPanel", () => {
           onToggle={mockOnToggle}
         />,
       );
-      expect(screen.getByText("Analyzing Document")).toBeInTheDocument();
+      expect(screen.getByText("Indexing in progress...")).toBeInTheDocument();
     });
 
     it("shows warning when document is currently ingesting", () => {
@@ -525,7 +525,7 @@ describe("ChatPanel", () => {
           onToggle={mockOnToggle}
         />,
       );
-      expect(screen.getByText("Analyzing Document")).toBeInTheDocument();
+      expect(screen.getByText("Indexing in progress...")).toBeInTheDocument();
     });
 
     it("does not show warning when document is already ingested", () => {
