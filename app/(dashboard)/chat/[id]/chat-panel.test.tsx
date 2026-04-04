@@ -540,7 +540,9 @@ describe("ChatPanel", () => {
           onToggle={mockOnToggle}
         />,
       );
-      expect(screen.queryByText("Analyzing Document")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Indexing in progress..."),
+      ).not.toBeInTheDocument();
     });
   });
 
