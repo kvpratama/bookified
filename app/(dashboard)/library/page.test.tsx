@@ -180,7 +180,7 @@ describe("LibraryPage", () => {
   });
 
   it("has the correct metadata", () => {
-    expect(metadata.title).toBe("Your Library | Bookified");
+    expect(metadata.title).toBe("Your Library | Sanctuary");
   });
 
   it('renders the "Your Library" heading', async () => {
