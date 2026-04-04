@@ -1,18 +1,13 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
+    <title>Login to Sanctuary</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!--[if !mso]><!-->
-    <!-- <style type="text/css">
-      @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;500&display=swap');
-    </style> -->
-    <!--<![endif]-->
     <style type="text/css">
       body {
         margin: 0;
         padding: 0;
-        background-color: #fdf8f5; /* Warm Cream */
         font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: #3c2f2f; /* Dark Chocolate */
         -webkit-font-smoothing: antialiased;
@@ -24,7 +19,6 @@
 
       .wrapper {
         width: 100%;
-        background-color: #fdf8f5;
         padding-bottom: 40px;
       }
 
@@ -62,7 +56,6 @@
         line-height: 1.6;
         margin-bottom: 30px;
         color: #3c2f2f;
-        /* opacity: 0.9; */
       }
 
       .button-container {
@@ -123,7 +116,10 @@
           </p>
 
           <div class="button-container">
-            <a href="{{ .ConfirmationURL }}" class="button"
+            <a
+              href="{{ .ConfirmationURL }}"
+              class="button"
+              style="color: #fdf8f5"
               >Enter the Sanctuary</a
             >
           </div>

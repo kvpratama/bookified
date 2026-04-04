@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "Your Library | Bookified",
+  title: "Your Library | Sanctuary",
   description: "Browse and manage your personal book collection.",
 };
 

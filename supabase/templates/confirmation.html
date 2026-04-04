@@ -1,13 +1,9 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
+    <title>Confirm your email</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!--[if !mso]><!-->
-    <!-- <style type="text/css">
-      @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;500&display=swap');
-    </style> -->
-    <!--<![endif]-->
     <style type="text/css">
       body {
         margin: 0;
@@ -62,7 +58,6 @@
         line-height: 1.6;
         margin-bottom: 30px;
         color: #3c2f2f;
-        /* opacity: 0.9; */
       }
 
       .button-container {
@@ -75,7 +70,6 @@
         color: #fdf8f5 !important;
         text-decoration: none;
         padding: 18px 36px;
-        /* border-radius: 4px; */
         font-weight: 500;
         font-size: 16px;
       }
@@ -122,7 +116,10 @@
           </p>
 
           <div class="button-container">
-            <a href="{{ .ConfirmationURL }}" class="button"
+            <a
+              href="{{ .ConfirmationURL }}"
+              class="button"
+              style="color: #fdf8f5"
               >Confirm My Residence</a
             >
           </div>
