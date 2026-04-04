@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { Send, Sparkles, MessageSquare, X, AlertCircle } from "lucide-react";
+import { Send, MessageSquare, X, AlertCircle } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -246,9 +247,9 @@ export function ChatPanel({
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-background/95 backdrop-blur-xl shrink-0 z-10 shadow-sm">
               <div className="flex items-center gap-2 min-w-0">
-                <Sparkles className="w-4 h-4 text-primary shrink-0 opacity-80" />
+                <Logo size={20} className="text-primary shrink-0 opacity-80" />
                 <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground/80 truncate">
-                  Ask Document
+                  Reading Companion
                 </span>
               </div>
               <SheetClose asChild>
@@ -269,11 +270,10 @@ export function ChatPanel({
                 <AlertCircle className="w-4 h-4 text-accent-foreground mt-0.5 shrink-0" />
                 <div className="flex flex-col gap-1">
                   <p className="text-[12px] font-medium text-foreground leading-none">
-                    Analyzing Document
+                    Indexing in progress...
                   </p>
                   <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
-                    Chat is available but answers may be inaccurate while the
-                    ingestion process is running.
+                    Chat is available but answers may lack full context.
                   </p>
                 </div>
               </div>
@@ -294,10 +294,13 @@ export function ChatPanel({
                       <div className="absolute top-1/3 left-1/3 w-32 h-32 rounded-full bg-primary/3 blur-2xl" />
                     </div>
                     <div className="relative w-16 h-16 rounded-full bg-linear-to-br from-accent-foreground/10 to-primary/5 border border-accent-foreground/10 flex items-center justify-center mb-6 shadow-sm">
-                      <Sparkles className="w-6 h-6 text-accent-foreground animate-breathe" />
+                      <Logo
+                        size={24}
+                        className="text-accent-foreground animate-breathe"
+                      />
                     </div>
                     <h3 className="relative text-xl font-serif text-foreground mb-3 tracking-tight">
-                      Ask the Document
+                      Begin Your Inquiry
                     </h3>
                     <p className="relative text-[13px] text-muted-foreground leading-relaxed">
                       Extract key insights, summarize chapters, or find specific
@@ -332,7 +335,7 @@ export function ChatPanel({
                             <div className="flex items-start gap-3">
                               <div className="mt-0.5 shrink-0">
                                 <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm text-primary">
-                                  <Sparkles className="w-3.5 h-3.5" />
+                                  <Logo size={14} />
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0">
@@ -379,7 +382,7 @@ export function ChatPanel({
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask about this document…"
+                  placeholder="What would you like to explore?"
                   aria-label="Chat message input"
                   className="pr-14 pl-5 py-6 text-[14px] bg-transparent dark:bg-transparent border-none focus-visible:ring-0 shadow-none font-sans rounded-full"
                 />
@@ -394,7 +397,7 @@ export function ChatPanel({
                 </Button>
               </div>
               <p className="text-center text-[10px] text-muted-foreground/60 mt-3 font-medium select-none tracking-wide uppercase">
-                AI can make mistakes. Verify important info.
+                AI can make mistakes. Verify important information.
               </p>
             </div>
           </div>
