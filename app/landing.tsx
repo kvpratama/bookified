@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { toast } from "sonner";
 
@@ -188,6 +188,21 @@ export function Landing() {
           </div>
         </div>
       </div>
+
+      {/* Scroll Hint */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() =>
+          window.scrollTo({ top: window.innerHeight, behavior: "smooth" })
+        }
+        className={`absolute bottom-8 left-1/2 -translate-x-1/2 z-40 hidden sm:inline-flex text-muted-foreground/60 hover:text-foreground hover:bg-transparent transition-all duration-1000 delay-1000 ease-out ${
+          isLoaded ? "opacity-100" : "opacity-0"
+        }`}
+        aria-label="Scroll down to learn more"
+      >
+        <ChevronDown className="size-6 animate-bounce-gentle" />
+      </Button>
     </div>
   );
 }

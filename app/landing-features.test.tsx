@@ -1,8 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import WelcomePage from "./page";
+import { LandingFeatures } from "./landing-features";
 
-// Mock next/link
 vi.mock("next/link", () => ({
   default: ({
     children,
@@ -19,16 +18,19 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-describe("WelcomePage", () => {
-  it("renders the main heading", () => {
-    render(<WelcomePage />);
+describe("LandingFeatures", () => {
+  it("renders the section heading", () => {
+    render(<LandingFeatures />);
     expect(
-      screen.getByRole("heading", { name: /welcome to sanctuary/i, level: 1 }),
+      screen.getByRole("heading", {
+        name: /everything you need to read smarter/i,
+        level: 2,
+      }),
     ).toBeInTheDocument();
   });
 
   it("renders all feature cards", () => {
-    render(<WelcomePage />);
+    render(<LandingFeatures />);
     expect(screen.getAllByText(/read your books/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/chat with ai/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/build your library/i).length).toBeGreaterThan(
@@ -37,14 +39,14 @@ describe("WelcomePage", () => {
   });
 
   it("renders the how-to sections", () => {
-    render(<WelcomePage />);
+    render(<LandingFeatures />);
     expect(screen.getAllByText(/how to upload/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/how to read/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/how to chat/i).length).toBeGreaterThan(0);
   });
 
   it("renders call-to-action buttons", () => {
-    render(<WelcomePage />);
+    render(<LandingFeatures />);
     const dashboardLinks = screen.getAllByRole("link", {
       name: /go to dashboard/i,
     });

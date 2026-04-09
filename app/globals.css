@@ -166,6 +166,20 @@
   animation: fade-in-up 1.8s ease-out;
 }
 
+@utility animate-bounce-gentle {
+  animation: bounce-gentle 2s ease-in-out infinite;
+}
+
+@keyframes bounce-gentle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
 @utility animate-scale-in {
   animation: scale-in 1s ease-out;
 }
