@@ -20,7 +20,7 @@ import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import { saveDocumentAction, deleteBlobsAction } from "./actions";
 import type { ExtractedMetadata, UploadMetadata } from "./upload-schema";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 type UploadStatus =
   | "idle"
@@ -64,7 +64,7 @@ export default function UploadPage() {
         return;
       }
       if (selectedFile.size > MAX_FILE_SIZE) {
-        setError("File size exceeds the 10MB limit.");
+        setError("File size exceeds the 5MB limit.");
         return;
       }
       setFile(selectedFile);
@@ -278,7 +278,7 @@ export default function UploadPage() {
                     </>
                   )}
                 </p>
-                <p className="text-sm text-muted-foreground">PDF · Max 10MB</p>
+                <p className="text-sm text-muted-foreground">PDF · Max 5MB</p>
               </div>
 
               <div className="mt-8">
