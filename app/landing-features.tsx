@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function LandingFeatures() {
   return (
@@ -165,7 +166,10 @@ function FeatureCard({
 }) {
   return (
     <div
-      className={`bg-card/50 border border-border/50 p-6 rounded-2xl hover:border-accent-foreground/20 transition-colors group animate-fade-in-up ${delay || ""}`}
+      className={cn(
+        "bg-card/50 border border-border/50 p-6 rounded-2xl hover:border-accent-foreground/20 transition-colors group animate-fade-in-up",
+        delay,
+      )}
     >
       <div className="w-12 h-12 rounded-xl bg-accent-foreground/5 flex items-center justify-center text-accent-foreground mb-4 group-hover:bg-accent-foreground/10 transition-colors">
         {icon}

@@ -13,25 +13,20 @@ export async function seedWelcomeDocument(userId: string): Promise<void> {
   try {
     const supabase = await createClient();
 
-    const { count } = await supabase
-      .from("documents")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .limit(1);
-
-    if (count && count > 0) return;
-
     const { data: doc, error } = await supabase
       .from("documents")
-      .insert({
-        name: WELCOME_DOC_NAME,
-        author: WELCOME_DOC_AUTHOR,
-        page_count: 1,
-        blob_url: blobUrl,
-        thumbnail_url: thumbnailUrl,
-        size: WELCOME_DOC_SIZE,
-        user_id: userId,
-      })
+      .upsert(
+        {
+          name: WELCOME_DOC_NAME,
+          author: WELCOME_DOC_AUTHOR,
+          page_count: 1,
+          blob_url: blobUrl,
+          thumbnail_url: thumbnailUrl,
+          size: WELCOME_DOC_SIZE,
+          user_id: userId,
+        },
+        { onConflict: "user_id,name", ignoreDuplicates: true },
+      )
       .select("id")
       .single();
 

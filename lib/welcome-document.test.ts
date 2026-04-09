@@ -1,35 +1,13 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockContext = {
-  existingDocCount: 0,
-  insertError: null as { message: string } | null,
-};
+const mockUpsertSingle = vi.fn();
 
-const mockLimit = vi.fn().mockImplementation(async () => ({
-  count: mockContext.existingDocCount,
-  error: null,
-}));
+const mockUpsertSelect = vi.fn().mockReturnValue({ single: mockUpsertSingle });
 
-const mockEq: unknown = vi.fn();
-(mockEq as Mock).mockImplementation(() => ({
-  limit: mockLimit,
-  eq: mockEq,
-}));
-
-const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
-
-const mockInsertSingle = vi.fn().mockImplementation(async () => ({
-  data: { id: "new-doc-id" },
-  error: mockContext.insertError,
-}));
-
-const mockInsertSelect = vi.fn().mockReturnValue({ single: mockInsertSingle });
-
-const mockInsert = vi.fn().mockReturnValue({ select: mockInsertSelect });
+const mockUpsert = vi.fn().mockReturnValue({ select: mockUpsertSelect });
 
 const mockFrom = vi.fn().mockImplementation(() => ({
-  select: mockSelect,
-  insert: mockInsert,
+  upsert: mockUpsert,
 }));
 
 const mockGetSession = vi.fn().mockResolvedValue({
@@ -50,8 +28,11 @@ import { seedWelcomeDocument } from "./welcome-document";
 describe("seedWelcomeDocument", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockContext.existingDocCount = 0;
-    mockContext.insertError = null;
+
+    mockUpsertSingle.mockResolvedValue({
+      data: { id: "new-doc-id" },
+      error: null,
+    });
 
     vi.stubEnv(
       "WELCOME_DOCUMENT_BLOB_URL",
@@ -70,26 +51,26 @@ describe("seedWelcomeDocument", () => {
     await seedWelcomeDocument("user-123");
 
     expect(mockFrom).toHaveBeenCalledWith("documents");
-    expect(mockSelect).toHaveBeenCalledWith("id", {
-      count: "exact",
-      head: true,
-    });
-    expect(mockEq).toHaveBeenCalledWith("user_id", "user-123");
-    expect(mockInsert).toHaveBeenCalledWith(
+    expect(mockUpsert).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Welcome to Sanctuary.pdf",
         user_id: "user-123",
         blob_url: "https://blob.example.com/welcome.pdf",
       }),
+      { onConflict: "user_id,name", ignoreDuplicates: true },
     );
   });
 
-  it("skips seeding when user already has documents", async () => {
-    mockContext.existingDocCount = 3;
+  it("skips ingestion when welcome document already exists", async () => {
+    mockUpsertSingle.mockResolvedValue({
+      data: null,
+      error: { message: "No rows returned" },
+    });
 
     await seedWelcomeDocument("user-123");
 
-    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockUpsert).toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("skips seeding when WELCOME_DOCUMENT_BLOB_URL is not set", async () => {
@@ -109,8 +90,20 @@ describe("seedWelcomeDocument", () => {
     );
   });
 
-  it("does not throw when insert fails", async () => {
-    mockContext.insertError = { message: "duplicate" };
+  it("skips ingestion when BOOKIFIED_API_ENDPOINT is not set", async () => {
+    vi.stubEnv("BOOKIFIED_API_ENDPOINT", "");
+
+    await seedWelcomeDocument("user-123");
+
+    expect(mockUpsert).toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("does not throw when upsert fails", async () => {
+    mockUpsertSingle.mockResolvedValue({
+      data: null,
+      error: { message: "duplicate" },
+    });
 
     await expect(seedWelcomeDocument("user-123")).resolves.not.toThrow();
   });

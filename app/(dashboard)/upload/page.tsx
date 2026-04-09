@@ -64,7 +64,7 @@ export default function UploadPage() {
         return;
       }
       if (selectedFile.size > MAX_FILE_SIZE) {
-        setError("File size exceeds the 5MB limit.");
+        setError(`File size exceeds the ${formatBytes(MAX_FILE_SIZE)} limit.`);
         return;
       }
       setFile(selectedFile);
@@ -278,7 +278,9 @@ export default function UploadPage() {
                     </>
                   )}
                 </p>
-                <p className="text-sm text-muted-foreground">PDF · Max 5MB</p>
+                <p className="text-sm text-muted-foreground">
+                  PDF · Max {formatBytes(MAX_FILE_SIZE)}
+                </p>
               </div>
 
               <div className="mt-8">

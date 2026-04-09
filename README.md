@@ -66,10 +66,13 @@ Upload PDFs and watch them become part of your personal collection. Sanctuary au
 Create a `.env.local` file based on `.env.example`:
 
 ```bash
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
+BOOKIFIED_BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
 BOOKIFIED_API_ENDPOINT=your-ai-service-url
+WELCOME_DOCUMENT_BLOB_URL=your-welcome-doc-blob-url
+WELCOME_DOCUMENT_THUMBNAIL_URL=your-welcome-doc-thumbnail-url
 ```
 
 ### Installation

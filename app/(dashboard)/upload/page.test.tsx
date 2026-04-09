@@ -61,7 +61,7 @@ describe("UploadPage", () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(
-      screen.getByText("File size exceeds the 5MB limit."),
+      screen.getByText("File size exceeds the 5 MB limit."),
     ).toBeInTheDocument();
   });
 
