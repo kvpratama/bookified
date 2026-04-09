@@ -111,7 +111,7 @@ export function ChatPanel({
     // );
     // Don't clear currentAiMessageId here - let the useEffect finish processing
     // The ID will be cleared on next message or when component unmounts
-  // }, [eventQueue.length]);
+    // }, [eventQueue.length]);
   }, []);
 
   const { sendMessage, isStreaming, error, resetError } = useChatStream(

@@ -136,8 +136,8 @@ export default function WelcomePage() {
         {/* Footer CTA */}
         <footer className="text-center pt-12 border-t border-border/50 animate-fade-in-up delay-1000">
           <p className="font-serif italic text-muted-foreground mb-8 text-lg">
-            &quot;Sanctuary is designed to feel like a quiet reading room — warm,
-            intentional, and yours.&quot;
+            &quot;Sanctuary is designed to feel like a quiet reading room —
+            warm, intentional, and yours.&quot;
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild size="lg" className="rounded-full px-8">

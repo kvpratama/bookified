@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
   try {
     const blobUrl = new URL(url);
     const pathname = blobUrl.pathname.replace(/^\//, "");
-    if (!pathname.startsWith(`${user.id}/`)) {
+    const isUserBlob = pathname.startsWith(`${user.id}/`);
+    const isSystemBlob = pathname.startsWith("system/");
+    if (!isUserBlob && !isSystemBlob) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   } catch {
