@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   BookOpen,
   MessageSquare,
@@ -159,7 +160,7 @@ function FeatureCard({
   description,
   delay,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   description: string;
   delay?: string;
@@ -199,7 +200,7 @@ function StepList({ steps }: { steps: string[] }) {
   );
 }
 
-function TipItem({ icon, text }: { icon: React.ReactNode; text: string }) {
+function TipItem({ icon, text }: { icon: ReactNode; text: string }) {
   return (
     <li className="flex items-start gap-3">
       <div className="mt-1 text-accent-foreground opacity-70">{icon}</div>
