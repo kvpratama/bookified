@@ -31,14 +31,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isPublic =
-    pathname === "/" ||
-    pathname === "/login" ||
-    pathname.startsWith("/login/") ||
-    pathname === "/auth" ||
-    pathname.startsWith("/auth/");
+  const protectedRoutes = ["/dashboard", "/chat", "/library", "/upload"];
+  const isProtected = protectedRoutes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
 
-  if (!user && !isPublic) {
+  if (!user && isProtected) {
     const url = request.nextUrl.clone();
     const originalPath = request.nextUrl.pathname + request.nextUrl.search;
     url.pathname = "/login";

@@ -51,7 +51,7 @@ describe("UploadPage", () => {
     expect(screen.getByText("Please upload a PDF file.")).toBeInTheDocument();
   });
 
-  it("shows error for file exceeding 10MB", () => {
+  it("shows error for file exceeding 5MB", () => {
     render(<UploadPage />);
     const input = document.querySelector(
       'input[type="file"]',
@@ -61,7 +61,7 @@ describe("UploadPage", () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(
-      screen.getByText("File size exceeds the 10MB limit."),
+      screen.getByText("File size exceeds the 5 MB limit."),
     ).toBeInTheDocument();
   });
 

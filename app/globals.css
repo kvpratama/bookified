@@ -166,6 +166,20 @@
   animation: fade-in-up 1.8s ease-out;
 }
 
+@utility animate-bounce-gentle {
+  animation: bounce-gentle 2s ease-in-out infinite;
+}
+
+@keyframes bounce-gentle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
 @utility animate-scale-in {
   animation: scale-in 1s ease-out;
 }
@@ -192,6 +206,35 @@
 
 @utility animate-text-glow {
   animation: text-glow 3s ease-in-out infinite;
+}
+
+@utility delay-100 {
+  animation-delay: 100ms;
+  animation-fill-mode: both;
+}
+@utility delay-200 {
+  animation-delay: 200ms;
+  animation-fill-mode: both;
+}
+@utility delay-300 {
+  animation-delay: 300ms;
+  animation-fill-mode: both;
+}
+@utility delay-400 {
+  animation-delay: 400ms;
+  animation-fill-mode: both;
+}
+@utility delay-500 {
+  animation-delay: 500ms;
+  animation-fill-mode: both;
+}
+@utility delay-700 {
+  animation-delay: 700ms;
+  animation-fill-mode: both;
+}
+@utility delay-1000 {
+  animation-delay: 1000ms;
+  animation-fill-mode: both;
 }
 
 :root {
